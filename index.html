@@ -185,7 +185,14 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
 <!-- 確定シフト -->
 <div class="sheet" id="shiftSheet" hidden><div class="sheet-in" role="dialog" aria-modal="true" aria-label="確定シフト">
   <div class="sheet-h"><h2 id="shiftTitle">確定シフト</h2><button class="btn sm ghost" id="shiftClose" style="margin-left:auto">閉じる</button></div>
-  <div class="sec"><div id="shiftBody"><p class="note">読み込んでいます…</p></div></div>
+  <div class="sec">
+    <div id="shiftBody"><p class="note">読み込んでいます…</p></div>
+    <img id="shiftImg" alt="確定シフトの表" hidden
+         style="width:100%;height:auto;border:1px solid var(--line);border-radius:10px;display:block">
+    <p class="note" id="shiftHint" hidden>画像を長押しすると、写真に保存したり送ったりできます。指で広げると大きくなります。</p>
+    <div class="row" style="margin-top:10px"><button class="btn sm ghost" id="shiftToggle" hidden>文字で見る</button></div>
+    <div id="shiftText" hidden style="margin-top:10px"></div>
+  </div>
 </div></div>
 
 <script src="./shared/shift-format.js"></script>
@@ -366,6 +373,79 @@ $("#directBtn").addEventListener("click",async function(){
   }
 });
 
+/* 確定シフトを1枚の画像に描く。スタッフはこれを長押しして保存・転送できる。 */
+function hashColor(name){
+  var P=["#C4703A","#2F7A55","#4F5FA6","#9C3C5E","#7A4E95","#1F7A82","#8A6D1F","#B3352C"];
+  var h=0; for(var i=0;i<name.length;i++) h=(h*31+name.charCodeAt(i))>>>0;
+  return P[h%P.length];
+}
+function drawShift(r,y,m,myName){
+  var W=1540, cw=W/7, headH=96, dowH=52;
+  var first=new Date(y,m,1).getDay(), last=new Date(y,m+1,0).getDate();
+  var weeks=Math.ceil((first+last)/7), ch=176, H=headH+dowH+weeks*ch+26;
+  var cv=document.createElement("canvas");
+  cv.width=W; cv.height=H;
+  var g=cv.getContext("2d");
+  var UI='-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif';
+  g.fillStyle="#FFFFFF"; g.fillRect(0,0,W,H);
+  g.fillStyle="#1B1A17"; g.font="bold 46px "+UI; g.textBaseline="alphabetic";
+  g.fillText(y+"年"+(m+1)+"月のシフト",26,64);
+  if(r.publishedAt){ g.fillStyle="#8B857A"; g.font="24px "+UI;
+    g.fillText(String(r.publishedAt).slice(0,16)+" 時点",26,90); }
+
+  var W7=["日","月","火","水","木","金","土"];
+  for(var c=0;c<7;c++){
+    g.fillStyle=c===0?"#B5443C":(c===6?"#3F6297":"#57534A");
+    g.font="26px "+UI; g.textAlign="center";
+    g.fillText(W7[c],c*cw+cw/2,headH+34);
+  }
+  g.textAlign="left";
+  var closed={}; (r.closed||[]).forEach(function(d){ closed[String(d)]=1 });
+  var key=String(myName||"").replace(/\s|　/g,"");
+  for(var d=1;d<=last;d++){
+    var idx=first+d-1, col=idx%7, row=(idx/7)|0;
+    var x=col*cw, ytop=headH+dowH+row*ch;
+    var isClosed=!!closed[String(d)];
+    g.fillStyle=isClosed?"#F1EEE7":"#FFFFFF";
+    g.fillRect(x+4,ytop+4,cw-8,ch-8);
+    g.strokeStyle="#E4DFD4"; g.lineWidth=2;
+    g.strokeRect(x+4,ytop+4,cw-8,ch-8);
+    var dow=new Date(y,m,d).getDay();
+    g.fillStyle=dow===0?"#B5443C":(dow===6?"#3F6297":"#8B857A");
+    g.font="26px "+UI;
+    g.fillText(String(d),x+18,ytop+40);
+    if(isClosed){
+      g.fillStyle="#B9B2A5"; g.font="bold 44px "+UI; g.textAlign="center";
+      g.fillText("off",x+cw/2,ytop+ch/2+22); g.textAlign="left";
+      continue;
+    }
+    var list=(r.days&&r.days[String(d)])||[];
+    for(var i=0;i<list.length&&i<4;i++){
+      var e=list[i], mine=String(e.name).replace(/\s|　/g,"")===key;
+      var txt=e.name+(e.label&&e.label!=="終日"?" "+e.label:"");
+      var fs=30;
+      g.font="bold "+fs+"px "+UI;
+      while(g.measureText(txt).width>cw-40&&fs>16){ fs-=1; g.font="bold "+fs+"px "+UI }
+      var ty=ytop+78+i*34;
+      if(mine){
+        g.fillStyle="#FFF3D6";
+        var pad=8, tw=g.measureText(txt).width;
+        g.beginPath();
+        var rx=x+14,ry=ty-fs+2,rw=tw+pad*2,rh=fs+12,rr=8;
+        g.moveTo(rx+rr,ry); g.arcTo(rx+rw,ry,rx+rw,ry+rh,rr); g.arcTo(rx+rw,ry+rh,rx,ry+rh,rr);
+        g.arcTo(rx,ry+rh,rx,ry,rr); g.arcTo(rx,ry,rx+rw,ry,rr); g.closePath(); g.fill();
+      }
+      g.fillStyle=e.c||hashColor(String(e.name));
+      g.fillText(txt,x+14+(mine?8:0),ty);
+    }
+    if(list.length>4){
+      g.fillStyle="#8B857A"; g.font="24px "+UI;
+      g.fillText("ほか"+(list.length-4)+"人",x+14,ytop+78+4*34);
+    }
+  }
+  return cv.toDataURL("image/png");
+}
+
 /* 確定シフトを見る */
 $("#openShift").addEventListener("click",async function(){
   $("#shiftTitle").textContent=(view.getMonth()+1)+"月の確定シフト";
@@ -373,7 +453,16 @@ $("#openShift").addEventListener("click",async function(){
   $("#shiftSheet").hidden=false;
   try{
     var r=await Sync.getShift(ymOf(view));
-    if(!r.days){ $("#shiftBody").innerHTML='<p class="note">この月のシフトは、まだ出ていません。</p>'; return }
+    if(!r.days){
+      $("#shiftBody").innerHTML='<p class="note">この月のシフトは、まだ出ていません。</p>';
+      $("#shiftImg").hidden=true; $("#shiftHint").hidden=true; $("#shiftToggle").hidden=true; $("#shiftText").hidden=true;
+      return;
+    }
+    try{
+      $("#shiftImg").src=drawShift(r,view.getFullYear(),view.getMonth(),name);
+      $("#shiftImg").hidden=false; $("#shiftHint").hidden=false; $("#shiftToggle").hidden=false;
+      $("#shiftBody").innerHTML="";
+    }catch(e){ $("#shiftImg").hidden=true; $("#shiftHint").hidden=true; $("#shiftToggle").hidden=true; $("#shiftText").hidden=false }
     var y=view.getFullYear(), m=view.getMonth(), last=new Date(y,m+1,0).getDate();
     var W=["日","月","火","水","木","金","土"], closed={}; (r.closed||[]).forEach(function(d){closed[String(d)]=1});
     var rows="";
@@ -387,11 +476,15 @@ $("#openShift").addEventListener("click",async function(){
           return esc(x.name)+(x.label&&x.label!=="終日"?"("+esc(x.label)+")":"")}).join("、"):"—"))+'</span>'+
         (mine?'<span style="margin-left:auto;color:var(--ok)">出勤</span>':'')+'</div>';
     }
-    $("#shiftBody").innerHTML=rows+'<p class="note">太字があなたの出勤日です。'+
-      (r.publishedAt?'（'+esc(r.publishedAt)+' 時点）':'')+'</p>';
+    $("#shiftText").innerHTML=rows;
   }catch(e){
     $("#shiftBody").innerHTML='<p class="note">'+esc((e&&e.message)||"読み込めませんでした")+'</p>';
+    $("#shiftImg").hidden=true; $("#shiftHint").hidden=true; $("#shiftToggle").hidden=true;
   }
+});
+$("#shiftToggle").addEventListener("click",function(){
+  var t=$("#shiftText"); t.hidden=!t.hidden;
+  this.textContent=t.hidden?"文字で見る":"文字を隠す";
 });
 $("#shiftClose").addEventListener("click",function(){ $("#shiftSheet").hidden=true });
 $("#sendClose").addEventListener("click",function(){ $("#sendSheet").hidden=true });
