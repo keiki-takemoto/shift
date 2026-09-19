@@ -21,7 +21,8 @@
   padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px}
 .top-in{max-width:760px;margin:0 auto;display:flex;align-items:center;gap:10px}
 .top h1{font-size:16px;white-space:nowrap}
-.top .who{margin-left:auto;font-size:12px;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.top .who{margin-left:auto;font-size:12px;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.top .btn{white-space:nowrap;flex:none}
 main{flex:1;width:100%;max-width:760px;margin:0 auto;padding:14px 16px 190px}
 .card+.card{margin-top:14px}
 
@@ -236,7 +237,7 @@ function save(){ set(K_REQ,store) }
 function renderHead(){
   $("#monthLbl").textContent=view.getFullYear()+"年"+(view.getMonth()+1)+"月";
   var s=sent[ymOf(view)];
-  $("#whoLbl").textContent=(name?name+" さん":"名前が未設定")+(s?"・提出ずみ":"");
+  $("#whoLbl").textContent=(s?"✓ ":"")+(name?name+" さん":"名前が未設定");
   $("#openShift").hidden=!(window.Sync&&Sync.isOn());
 }
 function renderCal(){
@@ -376,7 +377,7 @@ function hashColor(name){
   var h=0; for(var i=0;i<name.length;i++) h=(h*31+name.charCodeAt(i))>>>0;
   return P[h%P.length];
 }
-function drawShift(r,y,m,myName){
+function drawShift(r,y,m){
   var W=1540, cw=W/7, headH=96, dowH=52;
   var first=new Date(y,m,1).getDay(), last=new Date(y,m+1,0).getDate();
   var weeks=Math.ceil((first+last)/7), ch=176, H=headH+dowH+weeks*ch+26;
@@ -398,7 +399,6 @@ function drawShift(r,y,m,myName){
   }
   g.textAlign="left";
   var closed={}; (r.closed||[]).forEach(function(d){ closed[String(d)]=1 });
-  var key=String(myName||"").replace(/\s|　/g,"");
   for(var d=1;d<=last;d++){
     var idx=first+d-1, col=idx%7, row=(idx/7)|0;
     var x=col*cw, ytop=headH+dowH+row*ch;
@@ -418,22 +418,13 @@ function drawShift(r,y,m,myName){
     }
     var list=(r.days&&r.days[String(d)])||[];
     for(var i=0;i<list.length&&i<4;i++){
-      var e=list[i], mine=String(e.name).replace(/\s|　/g,"")===key;
+      var e=list[i];
       var txt=e.name+(e.label&&e.label!=="終日"?" "+e.label:"");
       var fs=30;
       g.font="bold "+fs+"px "+UI;
       while(g.measureText(txt).width>cw-40&&fs>16){ fs-=1; g.font="bold "+fs+"px "+UI }
-      var ty=ytop+78+i*34;
-      if(mine){
-        g.fillStyle="#FFF3D6";
-        var pad=8, tw=g.measureText(txt).width;
-        g.beginPath();
-        var rx=x+14,ry=ty-fs+2,rw=tw+pad*2,rh=fs+12,rr=8;
-        g.moveTo(rx+rr,ry); g.arcTo(rx+rw,ry,rx+rw,ry+rh,rr); g.arcTo(rx+rw,ry+rh,rx,ry+rh,rr);
-        g.arcTo(rx,ry+rh,rx,ry,rr); g.arcTo(rx,ry,rx+rw,ry,rr); g.closePath(); g.fill();
-      }
       g.fillStyle=e.c||hashColor(String(e.name));
-      g.fillText(txt,x+14+(mine?8:0),ty);
+      g.fillText(txt,x+14,ytop+78+i*34);
     }
     if(list.length>4){
       g.fillStyle="#8B857A"; g.font="24px "+UI;
@@ -456,7 +447,7 @@ $("#openShift").addEventListener("click",async function(){
       return;
     }
     try{
-      $("#shiftImg").src=drawShift(r,view.getFullYear(),view.getMonth(),name);
+      $("#shiftImg").src=drawShift(r,view.getFullYear(),view.getMonth());
       $("#shiftImg").hidden=false; $("#shiftHint").hidden=false; $("#shiftToggle").hidden=false;
       $("#shiftBody").innerHTML="";
     }catch(e){ $("#shiftImg").hidden=true; $("#shiftHint").hidden=true; $("#shiftToggle").hidden=true; $("#shiftText").hidden=false }
