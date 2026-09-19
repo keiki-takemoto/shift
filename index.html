@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>シフト希望を出す</title>
+<meta name="description" content="店舗スタッフがシフトの希望を入力して、LINEで店長に送るためのページ。">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#FAF8F4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141410" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="シフト希望">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="icon" href="./icons/favicon-32.png" sizes="32x32">
+<link rel="stylesheet" href="./shared/theme.css">
+<style>
+.app{min-height:100%;display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:calc(env(safe-area-inset-bottom,0px))}
+.top{position:sticky;top:0;z-index:30;background:var(--bg);border-bottom:1px solid var(--line);
+  padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px}
+.top-in{max-width:760px;margin:0 auto;display:flex;align-items:center;gap:10px}
+.top h1{font-size:16px;white-space:nowrap}
+.top .who{margin-left:auto;font-size:12px;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+main{flex:1;width:100%;max-width:760px;margin:0 auto;padding:14px 16px 190px}
+.card+.card{margin-top:14px}
+
+.monthbar{display:flex;align-items:center;gap:10px;justify-content:center;padding:4px 0 12px}
+.monthbar button{border:1px solid var(--line-2);background:var(--surface);border-radius:8px;width:38px;height:34px;
+  cursor:pointer;font-size:15px}
+#monthLbl{font-size:17px;font-weight:700;min-width:8.5em;text-align:center}
+
+/* カレンダー */
+.dows{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
+.dows span{text-align:center;font-size:11px;color:var(--ink-3);padding:2px 0}
+.dows .s0{color:var(--sun)} .dows .s6{color:var(--sat)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cell{aspect-ratio:1/1.12;border:1px solid var(--line);border-radius:9px;background:var(--surface);
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:1px;padding:4px 2px;cursor:pointer;
+  min-width:0;overflow:hidden}
+.cell.blank{border:none;background:transparent;cursor:default}
+.cell .d{font-size:12px;color:var(--ink-3);font-family:var(--mono);line-height:1.2}
+.cell.s0 .d{color:var(--sun)} .cell.s6 .d{color:var(--sat)}
+.cell .mk{font-size:15px;font-weight:700;line-height:1.15}
+.cell .tm{font-size:8.5px;font-family:var(--mono);line-height:1.15;letter-spacing:-.02em}
+.cell[data-c="ok"]{background:var(--ok-bg);border-color:transparent} .cell[data-c="ok"] .mk{color:var(--ok)}
+.cell[data-c="am"]{background:var(--am-bg);border-color:transparent} .cell[data-c="am"] .mk,.cell[data-c="am"] .tm{color:var(--am)}
+.cell[data-c="pm"]{background:var(--pm-bg);border-color:transparent} .cell[data-c="pm"] .mk,.cell[data-c="pm"] .tm{color:var(--pm)}
+.cell[data-c="tm"]{background:var(--tm-bg);border-color:transparent} .cell[data-c="tm"] .mk,.cell[data-c="tm"] .tm{color:var(--tm)}
+.cell[data-c="ng"]{background:var(--ng-bg);border-color:transparent} .cell[data-c="ng"] .mk{color:var(--ng)}
+
+/* 下のパレット */
+.palette{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--surface);border-top:1px solid var(--line);
+  padding:9px 12px calc(9px + env(safe-area-inset-bottom,0px));box-shadow:0 -6px 20px rgba(0,0,0,.06)}
+.pal-in{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:8px}
+.pal-row{display:flex;gap:6px}
+.pal{flex:1;border:1px solid var(--line-2);background:var(--surface-2);border-radius:10px;padding:8px 2px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:1px;font-size:10.5px;color:var(--ink-2);min-width:0}
+.pal .m{font-size:17px;font-weight:700;line-height:1.1}
+.pal[aria-pressed="true"]{border-width:2px;padding:7px 1px}
+.pal[data-c="ok"][aria-pressed="true"]{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.pal[data-c="am"][aria-pressed="true"]{background:var(--am-bg);border-color:var(--am);color:var(--am)}
+.pal[data-c="pm"][aria-pressed="true"]{background:var(--pm-bg);border-color:var(--pm);color:var(--pm)}
+.pal[data-c="tm"][aria-pressed="true"]{background:var(--tm-bg);border-color:var(--tm);color:var(--tm)}
+.pal[data-c="ng"][aria-pressed="true"]{background:var(--ng-bg);border-color:var(--ng);color:var(--ng)}
+.pal[data-c="ok"] .m{color:var(--ok)} .pal[data-c="am"] .m{color:var(--am)} .pal[data-c="pm"] .m{color:var(--pm)}
+.pal[data-c="tm"] .m{color:var(--tm)} .pal[data-c="ng"] .m{color:var(--ng)}
+.sendrow{display:flex;gap:8px;align-items:center}
+.sendrow .btn{flex:1}
+.count{font-size:11.5px;color:var(--ink-3);font-family:var(--mono);white-space:nowrap}
+
+.quick{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.quick .lbl{width:100%}
+/* シート */
+.sheet{position:fixed;inset:0;z-index:70;display:flex;align-items:flex-end;justify-content:center;
+  background:rgba(20,16,8,.45)}
+.sheet-in{background:var(--bg);width:100%;max-width:560px;max-height:88vh;overflow-y:auto;border-radius:16px 16px 0 0;
+  border:1px solid var(--line);padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+@media (min-width:640px){.sheet{align-items:center}.sheet-in{border-radius:16px}}
+.sheet-h{position:sticky;top:0;background:var(--bg);display:flex;align-items:center;gap:10px;padding:14px 16px;
+  border-bottom:1px solid var(--line)}
+.sheet-h h2{font-size:15px}
+.sec{padding:16px}
+.sec+.sec{border-top:1px solid var(--line)}
+pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:12px;font-size:12.5px;
+  font-family:var(--mono);white-space:pre-wrap;word-break:break-word;margin:0;line-height:1.75;max-height:44vh;overflow:auto}
+.note{font-size:12px;color:var(--ink-2);line-height:1.8}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top"><div class="top-in">
+    <h1>シフト希望</h1>
+    <span class="who" id="whoLbl"></span>
+    <button class="btn sm ghost" id="openName">名前</button>
+  </div></header>
+
+  <main>
+    <div class="monthbar">
+      <button id="prevM" aria-label="前の月">←</button>
+      <span id="monthLbl" class="mono"></span>
+      <button id="nextM" aria-label="次の月">→</button>
+    </div>
+
+    <div class="card"><div class="card-b" style="padding:12px 10px 14px">
+      <div class="dows">
+        <span class="s0">日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span class="s6">土</span>
+      </div>
+      <div class="cal" id="cal"></div>
+      <div class="quick">
+        <span class="lbl">まとめて×にする</span>
+        <div class="row" id="dowNg"></div>
+        <button class="btn sm ghost" id="resetAll">全部○に戻す</button>
+      </div>
+    </div></div>
+
+    <div class="card"><div class="card-b">
+      <div class="lbl" style="margin-bottom:6px">店長に伝えたいこと（任意）</div>
+      <textarea id="note" rows="2" placeholder="例）20日以降はテストのため少なめにしてください"></textarea>
+    </div></div>
+  </main>
+
+  <div class="palette"><div class="pal-in">
+    <div class="pal-row" id="palRow">
+      <button class="pal" data-c="ok" aria-pressed="true"><span class="m">○</span>終日OK</button>
+      <button class="pal" data-c="am" aria-pressed="false"><span class="m">午前</span>午前のみ</button>
+      <button class="pal" data-c="pm" aria-pressed="false"><span class="m">午後</span>午後のみ</button>
+      <button class="pal" data-c="tm" aria-pressed="false"><span class="m">時間</span>時間指定</button>
+      <button class="pal" data-c="ng" aria-pressed="false"><span class="m">×</span>出られない</button>
+    </div>
+    <div class="sendrow">
+      <span class="count" id="summary"></span>
+      <button class="btn primary" id="send">この内容で送る</button>
+    </div>
+  </div></div>
+</div>
+
+<!-- 名前 -->
+<div class="sheet" id="nameSheet" hidden><div class="sheet-in" role="dialog" aria-modal="true" aria-label="名前">
+  <div class="sheet-h"><h2>名前</h2><button class="btn sm ghost" id="nameClose" style="margin-left:auto">閉じる</button></div>
+  <div class="sec">
+    <div class="lbl" style="margin-bottom:6px">店長に分かる名前を入れてください</div>
+    <input type="text" id="nameIn" placeholder="例）田中" style="width:100%" autocomplete="name">
+    <p class="note">次からは自動で入ります。この端末にだけ保存されます。</p>
+    <div class="row" style="margin-top:12px"><button class="btn primary" id="nameSave">保存</button></div>
+  </div>
+</div></div>
+
+<!-- 時間指定 -->
+<div class="sheet" id="timeSheet" hidden><div class="sheet-in" role="dialog" aria-modal="true" aria-label="時間指定">
+  <div class="sheet-h"><h2 id="timeTitle">時間を指定</h2><button class="btn sm ghost" id="timeClose" style="margin-left:auto">閉じる</button></div>
+  <div class="sec">
+    <div class="row">
+      <div><div class="lbl">から</div><input type="time" id="timeFrom" value="13:00" step="900"></div>
+      <div><div class="lbl">まで（空欄可）</div><input type="time" id="timeTo" step="900"></div>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button class="btn primary" id="timeOk">この日に入れる</button>
+      <button class="btn sm ghost" id="timeClear">時間指定をやめる</button>
+    </div>
+    <p class="note">「まで」を空けると「13:00から」として伝わります。</p>
+  </div>
+</div></div>
+
+<!-- 送信 -->
+<div class="sheet" id="sendSheet" hidden><div class="sheet-in" role="dialog" aria-modal="true" aria-label="送る">
+  <div class="sheet-h"><h2>この文章を送ります</h2><button class="btn sm ghost" id="sendClose" style="margin-left:auto">閉じる</button></div>
+  <div class="sec">
+    <pre class="out" id="outText"></pre>
+    <div class="row" style="margin-top:12px">
+      <button class="btn primary" id="copyBtn">コピー</button>
+      <a class="btn" id="lineBtn" href="#" target="_blank" rel="noopener">LINEで送る</a>
+    </div>
+    <p class="note">コピーしてLINEに貼り付けるだけでも大丈夫です。送ったあとでも、直してもう一度送れます。</p>
+  </div>
+</div></div>
+
+<script src="./shared/shift-format.js"></script>
+<script>
+(function(){
+"use strict";
+var F=window.ShiftFormat;
+var $=function(s){return document.querySelector(s)};
+var K_NAME="shift.name.v1", K_REQ="shift.req.v1";
+var DOWN=["日","月","火","水","木","金","土"];
+function get(k,f){try{var v=localStorage.getItem(k);return v==null?f:JSON.parse(v)}catch(e){return f}}
+function set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function pad(n){return String(n).padStart(2,"0")}
+function ymOf(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)}
+
+var today=new Date();
+var view=new Date(today.getFullYear(),today.getMonth(),1);
+if(today.getDate()>=15) view.setMonth(view.getMonth()+1);   /* 月後半なら翌月を最初に出す */
+var name=get(K_NAME,"")||"";
+var store=get(K_REQ,{})||{};        /* { "2026-10": {days:{}, note:""} } */
+var brush="ok";
+
+function cur(){
+  var ym=ymOf(view);
+  if(!store[ym]) store[ym]={days:{},note:""};
+  return store[ym];
+}
+function save(){ set(K_REQ,store) }
+
+/* ---- 画面 ---- */
+function renderHead(){
+  $("#monthLbl").textContent=view.getFullYear()+"年"+(view.getMonth()+1)+"月";
+  $("#whoLbl").textContent=name?name+" さん":"名前が未設定";
+}
+function renderCal(){
+  var y=view.getFullYear(), m=view.getMonth();
+  var first=new Date(y,m,1).getDay(), last=new Date(y,m+1,0).getDate();
+  var d=cur().days, html="";
+  for(var i=0;i<first;i++) html+='<div class="cell blank"></div>';
+  for(var day=1;day<=last;day++){
+    var dow=new Date(y,m,day).getDay();
+    var code=d[String(day)]||"ok";
+    var kind=F.isTime(code)?"tm":code;
+    var mark=kind==="ok"?"○":kind==="am"?"午前":kind==="pm"?"午後":kind==="ng"?"×":"";
+    html+='<div class="cell s'+dow+'" data-d="'+day+'" data-c="'+kind+'">'+
+      '<span class="d">'+day+'</span>'+
+      (kind==="tm"?'<span class="tm">'+esc(F.timeText(code)).replace("-","-<br>")+'</span>'
+                  :'<span class="mk">'+mark+'</span>')+
+      '</div>';
+  }
+  $("#cal").innerHTML=html;
+  renderSummary();
+}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function renderSummary(){
+  var d=cur().days, n={ng:0,am:0,pm:0,tm:0};
+  Object.keys(d).forEach(function(k){
+    var c=d[k]; if(F.isTime(c)) n.tm++; else if(n[c]!==undefined) n[c]++;
+  });
+  var p=[];
+  if(n.ng) p.push("×"+n.ng);
+  if(n.am) p.push("午前"+n.am);
+  if(n.pm) p.push("午後"+n.pm);
+  if(n.tm) p.push("時間"+n.tm);
+  $("#summary").textContent=p.length?p.join(" / "):"すべて終日OK";
+}
+function renderDowBtns(){
+  $("#dowNg").innerHTML=DOWN.map(function(w,i){
+    return '<button class="chip sm" data-dow="'+i+'">'+w+'</button>';
+  }).join("");
+}
+
+/* ---- 操作 ---- */
+var timeTarget=null;
+$("#cal").addEventListener("click",function(e){
+  var cell=e.target.closest(".cell[data-d]"); if(!cell) return;
+  var day=cell.dataset.d, d=cur().days;
+  if(brush==="tm"){ timeTarget=day; openTime(day); return }
+  if(brush==="ok") delete d[day];
+  else if(d[day]===brush) delete d[day];          /* 同じものをもう一度押したら戻す */
+  else d[day]=brush;
+  save(); renderCal();
+});
+$("#palRow").addEventListener("click",function(e){
+  var b=e.target.closest(".pal"); if(!b) return;
+  brush=b.dataset.c;
+  this.querySelectorAll(".pal").forEach(function(p){ p.setAttribute("aria-pressed",String(p===b)) });
+});
+$("#dowNg").addEventListener("click",function(e){
+  var b=e.target.closest("[data-dow]"); if(!b) return;
+  var dow=+b.dataset.dow, y=view.getFullYear(), m=view.getMonth();
+  var last=new Date(y,m+1,0).getDate(), d=cur().days;
+  var allNg=true;
+  for(var i=1;i<=last;i++) if(new Date(y,m,i).getDay()===dow && d[String(i)]!=="ng") allNg=false;
+  for(var j=1;j<=last;j++) if(new Date(y,m,j).getDay()===dow){
+    if(allNg) delete d[String(j)]; else d[String(j)]="ng";
+  }
+  save(); renderCal();
+});
+$("#resetAll").addEventListener("click",function(){
+  if(!confirm("この月の入力を全部○に戻します。よろしいですか？")) return;
+  cur().days={}; save(); renderCal();
+});
+$("#prevM").addEventListener("click",function(){ view.setMonth(view.getMonth()-1); renderHead(); renderCal(); $("#note").value=cur().note||"" });
+$("#nextM").addEventListener("click",function(){ view.setMonth(view.getMonth()+1); renderHead(); renderCal(); $("#note").value=cur().note||"" });
+$("#note").addEventListener("input",function(){ cur().note=this.value; save() });
+
+/* 名前 */
+function openName(){ $("#nameIn").value=name; $("#nameSheet").hidden=false; setTimeout(function(){$("#nameIn").focus()},50) }
+$("#openName").addEventListener("click",openName);
+$("#nameClose").addEventListener("click",function(){ $("#nameSheet").hidden=true });
+$("#nameSave").addEventListener("click",function(){
+  name=$("#nameIn").value.trim(); set(K_NAME,name); $("#nameSheet").hidden=true; renderHead();
+});
+
+/* 時間指定 */
+function openTime(day){
+  var c=cur().days[day]||"";
+  $("#timeTitle").textContent=(view.getMonth()+1)+"月"+day+"日の時間";
+  if(F.isTime(c)){ var p=c.split("-"); $("#timeFrom").value=p[0]; $("#timeTo").value=p[1]||"" }
+  $("#timeSheet").hidden=false;
+}
+$("#timeClose").addEventListener("click",function(){ $("#timeSheet").hidden=true });
+$("#timeOk").addEventListener("click",function(){
+  var c=F.timeCode($("#timeFrom").value,$("#timeTo").value);
+  if(!c){ toast("開始の時間を入れてください"); return }
+  cur().days[timeTarget]=c; save(); $("#timeSheet").hidden=true; renderCal();
+});
+$("#timeClear").addEventListener("click",function(){
+  delete cur().days[timeTarget]; save(); $("#timeSheet").hidden=true; renderCal();
+});
+
+/* 送る */
+$("#send").addEventListener("click",function(){
+  if(!name){ toast("先に名前を入れてください"); openName(); return }
+  var t=F.buildRequestText({month:ymOf(view),name:name,days:cur().days,note:cur().note});
+  $("#outText").textContent=t;
+  $("#lineBtn").href="https://line.me/R/share?text="+encodeURIComponent(t);
+  $("#sendSheet").hidden=false;
+});
+$("#sendClose").addEventListener("click",function(){ $("#sendSheet").hidden=true });
+$("#copyBtn").addEventListener("click",async function(){
+  try{ await navigator.clipboard.writeText($("#outText").textContent); toast("コピーしました。LINEに貼り付けてください") }
+  catch(e){
+    var r=document.createRange(); r.selectNodeContents($("#outText"));
+    var s=getSelection(); s.removeAllRanges(); s.addRange(r);
+    toast("選択しました。長押しでコピーしてください");
+  }
+});
+document.querySelectorAll(".sheet").forEach(function(sh){
+  sh.addEventListener("click",function(e){ if(e.target===this) this.hidden=true });
+});
+
+var toastEl=null,tt=null;
+function toast(m){
+  if(!toastEl){ toastEl=document.createElement("div"); toastEl.className="toast"; document.body.appendChild(toastEl) }
+  toastEl.textContent=m; toastEl.hidden=false;
+  clearTimeout(tt); tt=setTimeout(function(){ toastEl.hidden=true },3000);
+}
+
+renderHead(); renderDowBtns(); renderCal();
+$("#note").value=cur().note||"";
+if(!name) setTimeout(openName,400);
+if("serviceWorker" in navigator) window.addEventListener("load",function(){ navigator.serviceWorker.register("./sw.js").catch(function(){}) });
+})();
+</script>
+</body>
+</html>
