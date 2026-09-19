@@ -1,8 +1,9 @@
 /* オフラインでも開けるようにする。ファイルを直したら番号を1つ上げること。 */
-const CACHE = "shift-v1";
-const SHELL = ["./","./index.html","./manifest.webmanifest","./shared/theme.css","./shared/shift-format.js",
-  "./admin/","./admin/index.html","./icons/icon-192.png","./icons/icon-512.png",
-  "./icons/apple-touch-icon.png","./icons/favicon-32.png"];
+const CACHE = "shift-v2";
+const SHELL = ["./","./index.html","./manifest.webmanifest","./shared/theme.css","./shared/shift-format.js","./shared/sync.js",
+  "./admin/","./admin/index.html","./admin/setup.html","./admin/manifest.webmanifest","./icons/icon-192.png","./icons/icon-512.png",
+  "./icons/apple-touch-icon.png","./icons/favicon-32.png",
+  "./icons/admin-192.png","./icons/admin-512.png","./icons/admin-180.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE)

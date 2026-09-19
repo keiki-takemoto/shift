@@ -92,6 +92,7 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
   <header class="top"><div class="top-in">
     <h1>シフト希望</h1>
     <span class="who" id="whoLbl"></span>
+    <button class="btn sm ghost" id="openShift" hidden>確定シフト</button>
     <button class="btn sm ghost" id="openName">名前</button>
   </div></header>
 
@@ -166,6 +167,12 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
 <div class="sheet" id="sendSheet" hidden><div class="sheet-in" role="dialog" aria-modal="true" aria-label="送る">
   <div class="sheet-h"><h2>この文章を送ります</h2><button class="btn sm ghost" id="sendClose" style="margin-left:auto">閉じる</button></div>
   <div class="sec">
+    <div id="directBox" hidden>
+      <button class="btn primary" id="directBtn" style="width:100%">店長にそのまま送る</button>
+      <p class="note" id="directNote">押すだけで店長の画面に届きます。</p>
+      <div style="height:1px;background:var(--line);margin:14px 0"></div>
+      <div class="lbl" style="margin-bottom:8px">LINEで送りたいときはこちら</div>
+    </div>
     <pre class="out" id="outText"></pre>
     <div class="row" style="margin-top:12px">
       <button class="btn primary" id="copyBtn">コピー</button>
@@ -175,13 +182,20 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
   </div>
 </div></div>
 
+<!-- 確定シフト -->
+<div class="sheet" id="shiftSheet" hidden><div class="sheet-in" role="dialog" aria-modal="true" aria-label="確定シフト">
+  <div class="sheet-h"><h2 id="shiftTitle">確定シフト</h2><button class="btn sm ghost" id="shiftClose" style="margin-left:auto">閉じる</button></div>
+  <div class="sec"><div id="shiftBody"><p class="note">読み込んでいます…</p></div></div>
+</div></div>
+
 <script src="./shared/shift-format.js"></script>
+<script src="./shared/sync.js"></script>
 <script>
 (function(){
 "use strict";
 var F=window.ShiftFormat;
 var $=function(s){return document.querySelector(s)};
-var K_NAME="shift.name.v1", K_REQ="shift.req.v1";
+var K_NAME="shift.name.v1", K_REQ="shift.req.v1", K_SYNC="shift.sync.v1", K_SENT="shift.sent.v1";
 var DOWN=["日","月","火","水","木","金","土"];
 function get(k,f){try{var v=localStorage.getItem(k);return v==null?f:JSON.parse(v)}catch(e){return f}}
 function set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
@@ -192,6 +206,21 @@ var today=new Date();
 var view=new Date(today.getFullYear(),today.getMonth(),1);
 if(today.getDate()>=15) view.setMonth(view.getMonth()+1);   /* 月後半なら翌月を最初に出す */
 var name=get(K_NAME,"")||"";
+var sent=get(K_SENT,{})||{};        /* 送信ずみの記録 { "2026-10": "2026-09-19 20:00" } */
+
+/* 店長から配られたURLに設定が入っていれば取り込む（?c=…） */
+(function(){
+  try{
+    var q=new URLSearchParams(location.search), c=q.get("c");
+    if(c){
+      var o=JSON.parse(atob(decodeURIComponent(c)));
+      if(o&&o.u){ set(K_SYNC,{url:o.u,code:o.c||""}); }
+      history.replaceState(null,"",location.pathname);
+    }
+  }catch(e){}
+  var cfg=get(K_SYNC,null);
+  if(cfg&&cfg.url&&window.Sync){ Sync.configure(cfg); }
+})();
 var store=get(K_REQ,{})||{};        /* { "2026-10": {days:{}, note:""} } */
 var brush="ok";
 
@@ -205,7 +234,9 @@ function save(){ set(K_REQ,store) }
 /* ---- 画面 ---- */
 function renderHead(){
   $("#monthLbl").textContent=view.getFullYear()+"年"+(view.getMonth()+1)+"月";
-  $("#whoLbl").textContent=name?name+" さん":"名前が未設定";
+  var s=sent[ymOf(view)];
+  $("#whoLbl").textContent=(name?name+" さん":"名前が未設定")+(s?"・提出ずみ":"");
+  $("#openShift").hidden=!(window.Sync&&Sync.isOn());
 }
 function renderCal(){
   var y=view.getFullYear(), m=view.getMonth();
@@ -311,8 +342,58 @@ $("#send").addEventListener("click",function(){
   var t=F.buildRequestText({month:ymOf(view),name:name,days:cur().days,note:cur().note});
   $("#outText").textContent=t;
   $("#lineBtn").href="https://line.me/R/share?text="+encodeURIComponent(t);
+  var on=!!(window.Sync&&Sync.isOn());
+  $("#directBox").hidden=!on;
+  $("#directBtn").disabled=false;
+  $("#directBtn").textContent="店長にそのまま送る";
+  $("#directNote").textContent="押すだけで店長の画面に届きます。";
   $("#sendSheet").hidden=false;
 });
+$("#directBtn").addEventListener("click",async function(){
+  var b=this;
+  b.disabled=true; b.textContent="送っています…";
+  try{
+    await Sync.submitRequest({name:name,month:ymOf(view),days:cur().days,note:cur().note});
+    sent[ymOf(view)]=new Date().toISOString(); set(K_SENT,sent);
+    b.textContent="送りました"; $("#directNote").textContent="店長の画面に届きました。直したら、また送れば上書きされます。";
+    renderHead(); toast("送りました");
+    setTimeout(function(){ $("#sendSheet").hidden=true },1200);
+  }catch(e){
+    b.disabled=false; b.textContent="もう一度送る";
+    $("#directNote").textContent=(e&&e.code==="offline")
+      ? "電波が届いていないようです。下のLINEで送ってください。"
+      : (e&&e.message)||"送れませんでした。下のLINEで送ってください。";
+  }
+});
+
+/* 確定シフトを見る */
+$("#openShift").addEventListener("click",async function(){
+  $("#shiftTitle").textContent=(view.getMonth()+1)+"月の確定シフト";
+  $("#shiftBody").innerHTML='<p class="note">読み込んでいます…</p>';
+  $("#shiftSheet").hidden=false;
+  try{
+    var r=await Sync.getShift(ymOf(view));
+    if(!r.days){ $("#shiftBody").innerHTML='<p class="note">この月のシフトは、まだ出ていません。</p>'; return }
+    var y=view.getFullYear(), m=view.getMonth(), last=new Date(y,m+1,0).getDate();
+    var W=["日","月","火","水","木","金","土"], closed={}; (r.closed||[]).forEach(function(d){closed[String(d)]=1});
+    var rows="";
+    for(var d=1;d<=last;d++){
+      var list=r.days[String(d)]||[];
+      var mine=list.some(function(x){return String(x.name).replace(/\s|　/g,"")===name.replace(/\s|　/g,"")});
+      rows+='<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--line);'+
+        (mine?'font-weight:700':'color:var(--ink-2)')+'">'+
+        '<span class="mono" style="min-width:4.2em">'+d+'日('+W[new Date(y,m,d).getDay()]+')</span>'+
+        '<span>'+(closed[String(d)]?"休業":(list.length?list.map(function(x){
+          return esc(x.name)+(x.label&&x.label!=="終日"?"("+esc(x.label)+")":"")}).join("、"):"—"))+'</span>'+
+        (mine?'<span style="margin-left:auto;color:var(--ok)">出勤</span>':'')+'</div>';
+    }
+    $("#shiftBody").innerHTML=rows+'<p class="note">太字があなたの出勤日です。'+
+      (r.publishedAt?'（'+esc(r.publishedAt)+' 時点）':'')+'</p>';
+  }catch(e){
+    $("#shiftBody").innerHTML='<p class="note">'+esc((e&&e.message)||"読み込めませんでした")+'</p>';
+  }
+});
+$("#shiftClose").addEventListener("click",function(){ $("#shiftSheet").hidden=true });
 $("#sendClose").addEventListener("click",function(){ $("#sendSheet").hidden=true });
 $("#copyBtn").addEventListener("click",async function(){
   try{ await navigator.clipboard.writeText($("#outText").textContent); toast("コピーしました。LINEに貼り付けてください") }

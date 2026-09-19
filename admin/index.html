@@ -7,6 +7,11 @@
 <meta name="description" content="スタッフから届いたシフト希望を取り込んで、月のシフトを組むための店長用ページ。">
 <meta name="theme-color" content="#FAF8F4" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#141410" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="シフト管理">
+<link rel="apple-touch-icon" href="../icons/admin-180.png">
 <link rel="icon" href="../icons/favicon-32.png" sizes="32x32">
 <link rel="stylesheet" href="../shared/theme.css">
 <style>
@@ -113,6 +118,13 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
 <main>
   <!-- ① 取り込み -->
   <section class="view" id="v-in" data-off>
+    <div class="card" id="onlineCard" style="margin-bottom:16px" hidden>
+      <div class="card-h"><h2>スタッフから直接届いた希望</h2><span class="hint" id="onlineAt"></span></div>
+      <div class="card-b"><div class="row">
+        <button class="btn" id="pullBtn">今すぐ取り込む</button>
+        <span class="lbl" id="onlineMsg">1分ごとに自動で取り込みます。</span>
+      </div></div>
+    </div>
     <div class="grid2">
       <div class="card">
         <div class="card-h"><h2>LINEで届いた希望を貼り付ける</h2><span class="hint">何人ぶんまとめてでもOK</span></div>
@@ -171,6 +183,13 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
           <div class="card-h"><h2>人ごとの集計</h2><span class="hint" id="sumMonth"></span></div>
           <div class="card-b" style="padding:0 0 4px"><table class="tbl" id="sumTbl"></table></div>
         </div>
+        <div class="card" style="margin-top:16px" id="pubCard" hidden>
+          <div class="card-h"><h2>スタッフに公開する</h2><span class="hint" id="pubAt"></span></div>
+          <div class="card-b"><div class="row">
+            <button class="btn primary" id="pubBtn">この月のシフトを公開</button>
+            <span class="lbl">スタッフのページの「確定シフト」に出ます</span>
+          </div></div>
+        </div>
         <div class="card" style="margin-top:16px">
           <div class="card-h"><h2>表計算ソフトに出す</h2></div>
           <div class="card-b"><div class="row">
@@ -186,6 +205,24 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
 <!-- 設定 -->
 <div class="sheet" id="cfg" hidden><div class="sheet-in" role="dialog" aria-modal="true" aria-label="設定">
   <div class="sheet-h"><h2>設定</h2><button class="btn sm ghost" id="cfgClose" style="margin-left:auto">閉じる</button></div>
+  <div class="sec">
+    <h3>スタッフから自動で受け取る</h3>
+    <div style="display:grid;gap:8px">
+      <div><div class="lbl">置き場所のURL（Apps Scriptのウェブアプリ）</div>
+        <input type="text" id="cfgUrl" placeholder="https://script.google.com/macros/s/…/exec" style="width:100%" spellcheck="false"></div>
+      <div class="row">
+        <div style="flex:1"><div class="lbl">合言葉（スタッフ用）</div><input type="text" id="cfgCode" style="width:100%" spellcheck="false"></div>
+        <div style="flex:1"><div class="lbl">管理用キー（店長用）</div><input type="text" id="cfgKey" style="width:100%" spellcheck="false"></div>
+      </div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn sm" id="cfgSave">保存してつなぐ</button>
+      <button class="btn sm ghost" id="cfgTest">つながるか試す</button>
+      <span class="lbl" id="cfgState"></span>
+    </div>
+    <p class="note">まだ置き場所を作っていない場合は <a href="./setup.html" target="_blank" rel="noopener">はじめの設定</a> を開いてください（10分ほど）。
+      空のままでも、LINEの貼り付けだけで使えます。</p>
+  </div>
   <div class="sec">
     <h3>スタッフ</h3>
     <div id="staffList"></div>
@@ -221,6 +258,7 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
 </div></div>
 
 <script src="../shared/shift-format.js"></script>
+<script src="../shared/sync.js"></script>
 <script>
 (function(){
 "use strict";
@@ -236,7 +274,7 @@ function uid(){return "s"+Date.now().toString(36)+Math.random().toString(36).sli
 var DB=load();
 function load(){
   try{ var v=JSON.parse(localStorage.getItem(KEY)); if(v&&v.staff) return v }catch(e){}
-  return {staff:[],needDow:[0,2,2,2,2,2,2],months:{}};
+  return {staff:[],needDow:[0,2,2,2,2,2,2],months:{},sync:null};
 }
 function save(){ try{ localStorage.setItem(KEY,JSON.stringify(DB)) }catch(e){ toast("保存できませんでした") } }
 function mon(ym){ if(!DB.months[ym]) DB.months[ym]={need:{},closed:{},req:{},assign:{}}; return DB.months[ym] }
@@ -249,6 +287,9 @@ function addStaff(name){
   var s={id:uid(),name:String(name).trim(),color:COLORS[DB.staff.length%COLORS.length]};
   DB.staff.push(s); return s;
 }
+
+if(DB.sync&&DB.sync.url&&window.Sync) Sync.configure(DB.sync);
+function syncOn(){ return !!(window.Sync&&Sync.isOn()) }
 
 var today=new Date();
 var view=new Date(today.getFullYear(),today.getMonth(),1);
@@ -518,15 +559,28 @@ $("#needRow").addEventListener("change",function(e){
   var n=parseInt(el.value,10); if(isNaN(n)||n<0) n=0;
   DB.needDow[+el.dataset.dow]=n; el.value=n; save(); renderCal();
 });
-$("#openCfg").addEventListener("click",function(){ renderStaff(); renderNeed(); $("#cfg").hidden=false });
+$("#openCfg").addEventListener("click",function(){
+  renderStaff(); renderNeed();
+  $("#cfgUrl").value=(DB.sync&&DB.sync.url)||"";
+  $("#cfgCode").value=(DB.sync&&DB.sync.code)||"";
+  $("#cfgKey").value=(DB.sync&&DB.sync.key)||"";
+  renderSyncUI(); $("#cfg").hidden=false;
+});
 $("#cfgClose").addEventListener("click",function(){ $("#cfg").hidden=true });
 $("#cfg").addEventListener("click",function(e){ if(e.target===this) this.hidden=true });
+function staffUrl(){
+  var base=location.href.replace(/admin\/?(index\.html)?(\?.*)?(#.*)?$/,"");
+  if(DB.sync&&DB.sync.url){
+    try{ return base+"?c="+encodeURIComponent(btoa(JSON.stringify({u:DB.sync.url,c:DB.sync.code||""}))) }catch(e){}
+  }
+  return base;
+}
 $("#copyStaffUrl").addEventListener("click",async function(){
-  var u=location.href.replace(/admin\/?(index\.html)?(\?.*)?(#.*)?$/,"");
-  try{ await navigator.clipboard.writeText(u); toast("コピーしました："+u) }catch(e){ prompt("このURLをコピーしてください",u) }
+  var u=staffUrl();
+  try{ await navigator.clipboard.writeText(u); toast("コピーしました") }catch(e){ prompt("このURLをコピーしてください",u) }
 });
 $("#copyAnn").addEventListener("click",async function(){
-  var u=location.href.replace(/admin\/?(index\.html)?(\?.*)?(#.*)?$/,"");
+  var u=staffUrl();
   var nm=new Date(view.getFullYear(),view.getMonth()+1,1);
   var t="【"+(nm.getMonth()+1)+"月のシフト希望】\nこちらから入力して、出てきた文章をこのトークに送ってください。\n"+u+"\n\n締切：今月20日まで";
   try{ await navigator.clipboard.writeText(t); toast("コピーしました") }catch(e){ prompt("コピーしてください",t) }
@@ -555,6 +609,95 @@ $("#wipe").addEventListener("click",function(){
   DB={staff:[],needDow:[0,2,2,2,2,2,2],months:{}}; save(); renderAll(); renderStaff(); renderNeed(); toast("消しました");
 });
 
+/* ================= オンライン受信 ================= */
+var lastPull=0, pulling=false;
+async function pull(silent){
+  if(!syncOn()||pulling) return;
+  pulling=true;
+  if(!silent) $("#onlineMsg").textContent="取り込んでいます…";
+  try{
+    /* 月を絞らずに全部取りにいく。別の月を見ていても取りこぼさないため。 */
+    var r=await Sync.listRequests("");
+    var changed=[], others={};
+    (r.items||[]).forEach(function(it){
+      if(!it.name||!/^\d{4}-\d{2}$/.test(it.month||"")) return;
+      var st=staffByName(it.name)||addStaff(it.name);
+      var m=mon(it.month), cur=m.req[st.id];
+      if(cur&&cur.at===it.at) return;
+      m.req[st.id]={days:it.days||{},note:it.note||"",at:it.at};
+      changed.push(st.name+(it.month===ym()?"":"（"+(+it.month.split("-")[1])+"月）"));
+      if(it.month!==ym()) others[it.month]=1;
+    });
+    lastPull=Date.now();
+    if(changed.length){
+      save(); renderAll();
+      var ks=Object.keys(others);
+      toast(changed.join("、")+" の希望が届きました"+(ks.length?"（"+ks.map(function(k){return (+k.split("-")[1])+"月"}).join("・")+"の画面で見られます）":""));
+    }
+    $("#onlineAt").textContent="最終確認 "+new Date().toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"});
+    $("#onlineMsg").textContent=changed.length?changed.length+"人ぶん取り込みました。":"新しい希望はありません。1分ごとに自動で確認します。";
+  }catch(e){
+    $("#onlineMsg").textContent=(e&&e.code==="offline")?"つながりませんでした。ネットワークを確認してください。"
+      :((e&&e.message)||"取り込めませんでした");
+  }finally{ pulling=false }
+}
+$("#pullBtn").addEventListener("click",function(){ pull(false) });
+setInterval(function(){
+  if(syncOn()&&document.visibilityState==="visible"&&Date.now()-lastPull>55000) pull(true);
+},60000);
+document.addEventListener("visibilitychange",function(){
+  if(document.visibilityState==="visible"&&syncOn()&&Date.now()-lastPull>30000) pull(true);
+});
+
+/* 公開 */
+$("#pubBtn").addEventListener("click",async function(){
+  if(!syncOn()){ toast("先に⚙設定で置き場所をつないでください"); return }
+  var b=this; b.disabled=true; b.textContent="公開しています…";
+  try{
+    var M=mon(ym()), y=view.getFullYear(), m=view.getMonth(), last=new Date(y,m+1,0).getDate();
+    var days={}, closed=[];
+    for(var d=1;d<=last;d++){
+      if(isClosed(d)){ closed.push(d); continue }
+      var a=(M.assign[String(d)]||[]).map(function(x){ var st=staffById(x.s); return st?{name:st.name,label:x.label}:null }).filter(Boolean);
+      if(a.length) days[String(d)]=a;
+    }
+    await Sync.publishShift(ym(),days,closed);
+    $("#pubAt").textContent="公開ずみ "+new Date().toLocaleString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"});
+    toast("スタッフに公開しました");
+  }catch(e){ toast((e&&e.message)||"公開できませんでした") }
+  finally{ b.disabled=false; b.textContent="この月のシフトを公開" }
+});
+
+/* 接続の設定 */
+function renderSyncUI(){
+  var on=syncOn();
+  $("#onlineCard").hidden=!on;
+  $("#pubCard").hidden=!on;
+  $("#cfgState").textContent=on?"つないでいます":"未接続（LINEの貼り付けのみ）";
+}
+$("#cfgSave").addEventListener("click",function(){
+  var u=$("#cfgUrl").value.trim();
+  DB.sync=u?{url:u,code:$("#cfgCode").value.trim(),key:$("#cfgKey").value.trim()}:null;
+  save(); if(window.Sync) Sync.configure(DB.sync);
+  renderSyncUI(); toast(u?"保存しました":"接続をやめました");
+  if(u) pull(false);
+});
+$("#cfgTest").addEventListener("click",async function(){
+  var u=$("#cfgUrl").value.trim();
+  if(!u){ toast("URLを入れてください"); return }
+  var keep=DB.sync;
+  if(window.Sync) Sync.configure({url:u,code:$("#cfgCode").value.trim(),key:$("#cfgKey").value.trim()});
+  $("#cfgState").textContent="試しています…";
+  try{
+    await Sync.ping();
+    await Sync.listRequests(ym());
+    $("#cfgState").textContent="つながりました";
+  }catch(e){
+    $("#cfgState").textContent=(e&&e.message)||"つながりませんでした";
+    if(window.Sync) Sync.configure(keep);
+  }
+});
+
 /* ================= タブ・共通 ================= */
 document.querySelector(".tabs").addEventListener("click",function(e){
   var b=e.target.closest(".tab[data-v]"); if(!b) return;
@@ -570,7 +713,9 @@ function toast(m){
   clearTimeout(tt); tt=setTimeout(function(){ toastEl.hidden=true },3200);
 }
 function renderAll(){ renderCal(); renderSubmissions(); renderOut(); }
-renderAll();
+renderAll(); renderSyncUI();
+if(syncOn()) pull(true);
+if("serviceWorker" in navigator) window.addEventListener("load",function(){ navigator.serviceWorker.register("../sw.js").catch(function(){}) });
 })();
 </script>
 </body>

@@ -46,3 +46,11 @@ d = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icons")
 os.makedirs(d, exist_ok=True)
 for name, size in [("icon-192.png",192), ("icon-512.png",512), ("apple-touch-icon.png",180), ("favicon-32.png",32)]:
     open(os.path.join(d, name), "wb").write(render(size)); print(name)
+
+# 店長用は地を紺にして見分けられるようにする
+BG = (0x1B, 0x2C, 0x40)
+ON = (0xF4, 0xEC, 0xDC)
+OFF = (0x44, 0x53, 0x66)
+BAR = (0xE0, 0xA1, 0x64)
+for name, size in [("admin-192.png",192), ("admin-512.png",512), ("admin-180.png",180)]:
+    open(os.path.join(d, name), "wb").write(render(size)); print(name)
