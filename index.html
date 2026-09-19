@@ -124,8 +124,8 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
   <div class="palette"><div class="pal-in">
     <div class="pal-row" id="palRow">
       <button class="pal" data-c="ok" aria-pressed="true"><span class="m">○</span>終日OK</button>
-      <button class="pal" data-c="am" aria-pressed="false"><span class="m">午前</span>午前のみ</button>
-      <button class="pal" data-c="pm" aria-pressed="false"><span class="m">午後</span>午後のみ</button>
+      <button class="pal" data-c="am" aria-pressed="false"><span class="m">AM</span>午前のみ</button>
+      <button class="pal" data-c="pm" aria-pressed="false"><span class="m">PM</span>午後のみ</button>
       <button class="pal" data-c="tm" aria-pressed="false"><span class="m">時間</span>時間指定</button>
       <button class="pal" data-c="ng" aria-pressed="false"><span class="m">×</span>出られない</button>
     </div>
@@ -247,7 +247,7 @@ function renderCal(){
     var dow=new Date(y,m,day).getDay();
     var code=d[String(day)]||"ok";
     var kind=F.isTime(code)?"tm":code;
-    var mark=kind==="ok"?"○":kind==="am"?"午前":kind==="pm"?"午後":kind==="ng"?"×":"";
+    var mark=kind==="ok"?"○":kind==="am"?"AM":kind==="pm"?"PM":kind==="ng"?"×":"";
     html+='<div class="cell s'+dow+'" data-d="'+day+'" data-c="'+kind+'">'+
       '<span class="d">'+day+'</span>'+
       (kind==="tm"?'<span class="tm">'+esc(F.timeText(code)).replace("-","-<br>")+'</span>'
@@ -265,8 +265,8 @@ function renderSummary(){
   });
   var p=[];
   if(n.ng) p.push("×"+n.ng);
-  if(n.am) p.push("午前"+n.am);
-  if(n.pm) p.push("午後"+n.pm);
+  if(n.am) p.push("AM"+n.am);
+  if(n.pm) p.push("PM"+n.pm);
   if(n.tm) p.push("時間"+n.tm);
   $("#summary").textContent=p.length?p.join(" / "):"すべて終日OK";
 }
