@@ -167,18 +167,12 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
 <div class="sheet" id="sendSheet" hidden><div class="sheet-in" role="dialog" aria-modal="true" aria-label="送る">
   <div class="sheet-h"><h2>この文章を送ります</h2><button class="btn sm ghost" id="sendClose" style="margin-left:auto">閉じる</button></div>
   <div class="sec">
-    <div id="directBox" hidden>
-      <button class="btn primary" id="directBtn" style="width:100%">店長にそのまま送る</button>
-      <p class="note" id="directNote">押すだけで店長の画面に届きます。</p>
-      <div style="height:1px;background:var(--line);margin:14px 0"></div>
-      <div class="lbl" style="margin-bottom:8px">LINEで送りたいときはこちら</div>
-    </div>
     <pre class="out" id="outText"></pre>
-    <div class="row" style="margin-top:12px">
-      <button class="btn primary" id="copyBtn">コピー</button>
-      <a class="btn" id="lineBtn" href="#" target="_blank" rel="noopener">LINEで送る</a>
+    <div id="directBox" hidden style="margin-top:12px">
+      <button class="btn primary" id="directBtn" style="width:100%">店長に送る</button>
+      <p class="note" id="directNote">送ったあとでも、直してもう一度送れます。</p>
     </div>
-    <p class="note">コピーしてLINEに貼り付けるだけでも大丈夫です。送ったあとでも、直してもう一度送れます。</p>
+    <p class="note" id="offNote" hidden>店長から届いたURLを開くと送れるようになります。</p>
   </div>
 </div></div>
 
@@ -350,14 +344,13 @@ $("#send").addEventListener("click",function(){
   if(!name){ toast("先に名前を入れてください"); openName(); return }
   if(!Object.keys(cur().days).length &&
      !confirm("出られる日が1日も選ばれていません。このまま送りますか？")) return;
-  var t=F.buildRequestText({month:ymOf(view),name:name,days:cur().days,note:cur().note});
-  $("#outText").textContent=t;
-  $("#lineBtn").href="https://line.me/R/share?text="+encodeURIComponent(t);
+  $("#outText").textContent=F.buildRequestText({month:ymOf(view),name:name,days:cur().days,note:cur().note});
   var on=!!(window.Sync&&Sync.isOn());
   $("#directBox").hidden=!on;
+  $("#offNote").hidden=on;
   $("#directBtn").disabled=false;
-  $("#directBtn").textContent="店長にそのまま送る";
-  $("#directNote").textContent="押すだけで店長の画面に届きます。";
+  $("#directBtn").textContent="店長に送る";
+  $("#directNote").textContent="送ったあとでも、直してもう一度送れます。";
   $("#sendSheet").hidden=false;
 });
 $("#directBtn").addEventListener("click",async function(){
@@ -372,8 +365,8 @@ $("#directBtn").addEventListener("click",async function(){
   }catch(e){
     b.disabled=false; b.textContent="もう一度送る";
     $("#directNote").textContent=(e&&e.code==="offline")
-      ? "電波が届いていないようです。下のLINEで送ってください。"
-      : (e&&e.message)||"送れませんでした。下のLINEで送ってください。";
+      ? "電波が届いていないようです。つながってからもう一度押してください。"
+      : (e&&e.message)||"送れませんでした。もう一度押してみてください。";
   }
 });
 
@@ -492,14 +485,6 @@ $("#shiftToggle").addEventListener("click",function(){
 });
 $("#shiftClose").addEventListener("click",function(){ $("#shiftSheet").hidden=true });
 $("#sendClose").addEventListener("click",function(){ $("#sendSheet").hidden=true });
-$("#copyBtn").addEventListener("click",async function(){
-  try{ await navigator.clipboard.writeText($("#outText").textContent); toast("コピーしました。LINEに貼り付けてください") }
-  catch(e){
-    var r=document.createRange(); r.selectNodeContents($("#outText"));
-    var s=getSelection(); s.removeAllRanges(); s.addRange(r);
-    toast("選択しました。長押しでコピーしてください");
-  }
-});
 document.querySelectorAll(".sheet").forEach(function(sh){
   sh.addEventListener("click",function(e){ if(e.target===this) this.hidden=true });
 });
