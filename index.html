@@ -214,12 +214,12 @@ var sent=get(K_SENT,{})||{};        /* 送信ずみの記録 { "2026-10": "2026-
     var q=new URLSearchParams(location.search), c=q.get("c");
     if(c){
       var o=JSON.parse(atob(decodeURIComponent(c)));
-      if(o&&o.u){ set(K_SYNC,{url:o.u,code:o.c||""}); }
+      if(o&&o.u&&o.a){ set(K_SYNC,{url:o.u,anon:o.a,code:o.c||""}); }
       history.replaceState(null,"",location.pathname);
     }
   }catch(e){}
   var cfg=get(K_SYNC,null);
-  if(cfg&&cfg.url&&window.Sync){ Sync.configure(cfg); }
+  if(cfg&&cfg.url&&cfg.anon&&window.Sync){ Sync.configure(cfg); }
 })();
 var store=get(K_REQ,{})||{};        /* { "2026-10": {days:{}, note:""} } */
 var brush="ok";
