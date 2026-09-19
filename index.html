@@ -109,9 +109,10 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
       </div>
       <div class="cal" id="cal"></div>
       <div class="quick">
-        <span class="lbl">まとめて×にする</span>
+        <span class="lbl">出られる日を選んでください。選んでいない日は「出られない」として伝わります。</span>
+        <span class="lbl" style="width:100%">この曜日をまとめて入れる</span>
         <div class="row" id="dowNg"></div>
-        <button class="btn sm ghost" id="resetAll">全部○に戻す</button>
+        <button class="btn sm ghost" id="resetAll">全部消す</button>
       </div>
     </div></div>
 
@@ -127,7 +128,6 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
       <button class="pal" data-c="am" aria-pressed="false"><span class="m">AM</span>午前のみ</button>
       <button class="pal" data-c="pm" aria-pressed="false"><span class="m">PM</span>午後のみ</button>
       <button class="pal" data-c="tm" aria-pressed="false"><span class="m">時間</span>時間指定</button>
-      <button class="pal" data-c="ng" aria-pressed="false"><span class="m">×</span>出られない</button>
     </div>
     <div class="sendrow">
       <span class="count" id="summary"></span>
@@ -252,9 +252,9 @@ function renderCal(){
   for(var i=0;i<first;i++) html+='<div class="cell blank"></div>';
   for(var day=1;day<=last;day++){
     var dow=new Date(y,m,day).getDay();
-    var code=d[String(day)]||"ok";
-    var kind=F.isTime(code)?"tm":code;
-    var mark=kind==="ok"?"○":kind==="am"?"AM":kind==="pm"?"PM":kind==="ng"?"×":"";
+    var code=d[String(day)]||"";
+    var kind=code?(F.isTime(code)?"tm":code):"";
+    var mark=kind==="ok"?"○":kind==="am"?"AM":kind==="pm"?"PM":"";
     html+='<div class="cell s'+dow+'" data-d="'+day+'" data-c="'+kind+'">'+
       '<span class="d">'+day+'</span>'+
       (kind==="tm"?'<span class="tm">'+esc(F.timeText(code)).replace("-","-<br>")+'</span>'
@@ -266,16 +266,18 @@ function renderCal(){
 }
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function renderSummary(){
-  var d=cur().days, n={ng:0,am:0,pm:0,tm:0};
+  var d=cur().days, n={ok:0,am:0,pm:0,tm:0}, total=0;
   Object.keys(d).forEach(function(k){
-    var c=d[k]; if(F.isTime(c)) n.tm++; else if(n[c]!==undefined) n[c]++;
+    var c=d[k]; if(!c) return; total++;
+    if(F.isTime(c)) n.tm++; else if(n[c]!==undefined) n[c]++;
   });
+  if(!total){ $("#summary").textContent="出られる日を選んでください"; return }
   var p=[];
-  if(n.ng) p.push("×"+n.ng);
+  if(n.ok) p.push("終日"+n.ok);
   if(n.am) p.push("AM"+n.am);
   if(n.pm) p.push("PM"+n.pm);
   if(n.tm) p.push("時間"+n.tm);
-  $("#summary").textContent=p.length?p.join(" / "):"すべて終日OK";
+  $("#summary").textContent="出られる日 "+total+"日（"+p.join(" ")+"）";
 }
 function renderDowBtns(){
   $("#dowNg").innerHTML=DOWN.map(function(w,i){
@@ -289,8 +291,7 @@ $("#cal").addEventListener("click",function(e){
   var cell=e.target.closest(".cell[data-d]"); if(!cell) return;
   var day=cell.dataset.d, d=cur().days;
   if(brush==="tm"){ timeTarget=day; openTime(day); return }
-  if(brush==="ok") delete d[day];
-  else if(d[day]===brush) delete d[day];          /* 同じものをもう一度押したら戻す */
+  if(d[day]===brush) delete d[day];               /* 同じものをもう一度押したら消す */
   else d[day]=brush;
   save(); renderCal();
 });
@@ -301,17 +302,18 @@ $("#palRow").addEventListener("click",function(e){
 });
 $("#dowNg").addEventListener("click",function(e){
   var b=e.target.closest("[data-dow]"); if(!b) return;
+  if(brush==="tm"){ toast("時間指定は日ごとに入れてください"); return }
   var dow=+b.dataset.dow, y=view.getFullYear(), m=view.getMonth();
   var last=new Date(y,m+1,0).getDate(), d=cur().days;
-  var allNg=true;
-  for(var i=1;i<=last;i++) if(new Date(y,m,i).getDay()===dow && d[String(i)]!=="ng") allNg=false;
+  var all=true;
+  for(var i=1;i<=last;i++) if(new Date(y,m,i).getDay()===dow && d[String(i)]!==brush) all=false;
   for(var j=1;j<=last;j++) if(new Date(y,m,j).getDay()===dow){
-    if(allNg) delete d[String(j)]; else d[String(j)]="ng";
+    if(all) delete d[String(j)]; else d[String(j)]=brush;
   }
   save(); renderCal();
 });
 $("#resetAll").addEventListener("click",function(){
-  if(!confirm("この月の入力を全部○に戻します。よろしいですか？")) return;
+  if(!confirm("この月の入力を全部消します。よろしいですか？")) return;
   cur().days={}; save(); renderCal();
 });
 $("#prevM").addEventListener("click",function(){ view.setMonth(view.getMonth()-1); renderHead(); renderCal(); $("#note").value=cur().note||"" });
@@ -346,6 +348,8 @@ $("#timeClear").addEventListener("click",function(){
 /* 送る */
 $("#send").addEventListener("click",function(){
   if(!name){ toast("先に名前を入れてください"); openName(); return }
+  if(!Object.keys(cur().days).length &&
+     !confirm("出られる日が1日も選ばれていません。このまま送りますか？")) return;
   var t=F.buildRequestText({month:ymOf(view),name:name,days:cur().days,note:cur().note});
   $("#outText").textContent=t;
   $("#lineBtn").href="https://line.me/R/share?text="+encodeURIComponent(t);
