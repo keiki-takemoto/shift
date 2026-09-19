@@ -1,5 +1,5 @@
 /* オフラインでも開けるようにする。ファイルを直したら番号を1つ上げること。 */
-const CACHE = "shift-v11";
+const CACHE = "shift-v12";
 const SHELL = ["./","./index.html","./manifest.webmanifest","./shared/theme.css","./shared/shift-format.js","./shared/sync.js",
   "./icons/icon-192.png","./icons/icon-512.png",
   "./icons/apple-touch-icon.png","./icons/favicon-32.png"];
