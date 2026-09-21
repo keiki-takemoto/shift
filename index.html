@@ -354,10 +354,24 @@ function hashColor(name){
   var h=0; for(var i=0;i<name.length;i++) h=(h*31+name.charCodeAt(i))>>>0;
   return P[h%P.length];
 }
+/* AMを上、PMを下に。時間指定は始まりの時刻の順、終日はいちばん上。 */
+function slotRank(label){
+  var x=String(label||"");
+  if(x==="AM"||x==="\u5348\u524d") return 1;
+  if(x==="PM"||x==="\u5348\u5f8c") return 12.5;
+  var m=x.match(/^(\d{1,2}):(\d{2})/);
+  if(m) return +m[1]+(+m[2])/60;
+  return 0;
+}
 function drawShift(r,y,m){
   var W=1540, cw=W/7, headH=96, dowH=52;
   var first=new Date(y,m,1).getDay(), last=new Date(y,m+1,0).getDate();
-  var weeks=Math.ceil((first+last)/7), ch=176, H=headH+dowH+weeks*ch+26;
+  var weeks=Math.ceil((first+last)/7);
+  /* いちばん人数の多い日に合わせてマスの高さを決める（AM・PMで分けると人数が増えるため） */
+  var maxN=0;
+  for(var dd=1;dd<=last;dd++) maxN=Math.max(maxN,(((r.days||{})[String(dd)])||[]).length);
+  var LINES=Math.min(Math.max(maxN,3),6), LH=34;
+  var ch=78+(LINES-1)*LH+16, H=headH+dowH+weeks*ch+26;
   var cv=document.createElement("canvas");
   cv.width=W; cv.height=H;
   var g=cv.getContext("2d");
@@ -393,19 +407,21 @@ function drawShift(r,y,m){
       g.fillText("off",x+cw/2,ytop+ch/2+22); g.textAlign="left";
       continue;
     }
-    var list=(r.days&&r.days[String(d)])||[];
-    for(var i=0;i<list.length&&i<4;i++){
+    var list=((r.days&&r.days[String(d)])||[]).slice()
+      .sort(function(p,q){ return slotRank(p.label)-slotRank(q.label) });
+    var show=(list.length>LINES)?LINES-1:list.length;
+    for(var i=0;i<show;i++){
       var e=list[i];
       var txt=e.name+(e.label&&e.label!=="終日"?" "+e.label:"");
       var fs=30;
       g.font="bold "+fs+"px "+UI;
       while(g.measureText(txt).width>cw-40&&fs>16){ fs-=1; g.font="bold "+fs+"px "+UI }
       g.fillStyle=e.c||hashColor(String(e.name));
-      g.fillText(txt,x+14,ytop+78+i*34);
+      g.fillText(txt,x+14,ytop+78+i*LH);
     }
-    if(list.length>4){
+    if(list.length>show){
       g.fillStyle="#8B857A"; g.font="24px "+UI;
-      g.fillText("ほか"+(list.length-4)+"人",x+14,ytop+78+4*34);
+      g.fillText("ほか"+(list.length-show)+"人",x+14,ytop+78+show*LH);
     }
   }
   return cv.toDataURL("image/png");
@@ -432,7 +448,8 @@ $("#openShift").addEventListener("click",async function(){
     var W=["日","月","火","水","木","金","土"], closed={}; (r.closed||[]).forEach(function(d){closed[String(d)]=1});
     var rows="";
     for(var d=1;d<=last;d++){
-      var list=r.days[String(d)]||[];
+      var list=(r.days[String(d)]||[]).slice()
+        .sort(function(p,q){ return slotRank(p.label)-slotRank(q.label) });
       var mine=list.some(function(x){return String(x.name).replace(/\s|　/g,"")===name.replace(/\s|　/g,"")});
       rows+='<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--line);'+
         (mine?'font-weight:700':'color:var(--ink-2)')+'">'+
