@@ -86,6 +86,12 @@ main{flex:1;width:100%;max-width:760px;margin:0 auto;padding:14px 16px 190px}
 pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:12px;font-size:12.5px;
   font-family:var(--mono);white-space:pre-wrap;word-break:break-word;margin:0;line-height:1.75;max-height:44vh;overflow:auto}
 .note{font-size:12px;color:var(--ink-2);line-height:1.8}
+#shiftFlag{margin:0 0 10px;padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.75}
+#shiftFlag[hidden]{display:none}
+#shiftFlag.draft{background:var(--warn-bg);color:var(--warn)}
+#shiftFlag.fixed{background:var(--ok-bg);color:var(--ok)}
+#shiftFlag b{font-weight:800}
+#shiftFlag .btn{margin-top:8px}
 </style>
 </head>
 <body>
@@ -93,7 +99,7 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
   <header class="top"><div class="top-in">
     <h1>シフト希望</h1>
     <span class="who" id="whoLbl"></span>
-    <button class="btn sm ghost" id="openShift" hidden>確定シフト</button>
+    <button class="btn sm ghost" id="openShift" hidden>シフト表</button>
     <button class="btn sm ghost" id="openName">名前</button>
   </div></header>
 
@@ -169,6 +175,7 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
   <div class="sheet-h"><h2 id="shiftTitle">確定シフト</h2><button class="btn sm ghost" id="shiftClose" style="margin-left:auto">閉じる</button></div>
   <div class="sec">
     <div id="shiftBody"><p class="note">読み込んでいます…</p></div>
+    <div id="shiftFlag" hidden></div>
     <img id="shiftImg" alt="確定シフトの表" hidden
          style="width:100%;height:auto;border:1px solid var(--line);border-radius:10px;display:block">
     <p class="note" id="shiftHint" hidden>画像を長押しすると、写真に保存したり送ったりできます。指で広げると大きくなります。</p>
@@ -378,7 +385,8 @@ function drawShift(r,y,m){
   var UI='-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif';
   g.fillStyle="#FFFFFF"; g.fillRect(0,0,W,H);
   g.fillStyle="#1B1A17"; g.font="bold 46px "+UI; g.textBaseline="alphabetic";
-  g.fillText(y+"年"+(m+1)+"月のシフト",26,64);
+  var isDraft=!!(r.days&&r.days._meta&&r.days._meta.draft);
+  g.fillText(y+"年"+(m+1)+"月のシフト"+(isDraft?"（仮）":""),26,64);
   if(r.publishedAt){ g.fillStyle="#8B857A"; g.font="24px "+UI;
     g.fillText(String(r.publishedAt).slice(0,16)+" 時点",26,90); }
 
@@ -429,8 +437,9 @@ function drawShift(r,y,m){
 
 /* 確定シフトを見る */
 $("#openShift").addEventListener("click",async function(){
-  $("#shiftTitle").textContent=(view.getMonth()+1)+"月の確定シフト";
+  $("#shiftTitle").textContent=(view.getMonth()+1)+"月のシフト";
   $("#shiftBody").innerHTML='<p class="note">読み込んでいます…</p>';
+  $("#shiftFlag").hidden=true;
   $("#shiftSheet").hidden=false;
   try{
     var r=await Sync.getShift(ymOf(view));
@@ -439,6 +448,15 @@ $("#openShift").addEventListener("click",async function(){
       $("#shiftImg").hidden=true; $("#shiftHint").hidden=true; $("#shiftToggle").hidden=true; $("#shiftText").hidden=true;
       return;
     }
+    var isDraft=!!(r.days._meta&&r.days._meta.draft);
+    $("#shiftTitle").textContent=(view.getMonth()+1)+"月のシフト"+(isDraft?"（仮）":"（確定）");
+    var f=$("#shiftFlag");
+    f.className=isDraft?"draft":"fixed";
+    f.innerHTML=isDraft
+      ? '<b>これはまだ仮です。</b>変わることがあります。<br>都合の悪い日や、追加で入れる日があれば、下のボタンから出し直してください。'+
+        '<div><button class="btn sm" id="shiftRedo">希望を出し直す</button></div>'
+      : '<b>確定したシフトです。</b>';
+    f.hidden=false;
     try{
       $("#shiftImg").src=drawShift(r,view.getFullYear(),view.getMonth());
       $("#shiftImg").hidden=false; $("#shiftHint").hidden=false; $("#shiftToggle").hidden=false;
@@ -469,6 +487,13 @@ $("#shiftToggle").addEventListener("click",function(){
   this.textContent=t.hidden?"文字で見る":"文字を隠す";
 });
 $("#shiftClose").addEventListener("click",function(){ $("#shiftSheet").hidden=true });
+/* 仮のシフトを見て「やっぱりこの日は…」というとき */
+$("#shiftFlag").addEventListener("click",function(e){
+  if(!e.target.closest("#shiftRedo")) return;
+  $("#shiftSheet").hidden=true;
+  window.scrollTo({top:0});
+  toast("出られる日を直したら、下の「この内容で送る」を押してください");
+});
 document.querySelectorAll(".sheet").forEach(function(sh){
   sh.addEventListener("click",function(e){ if(e.target===this) this.hidden=true });
 });
