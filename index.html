@@ -49,6 +49,9 @@ main{flex:1;width:100%;max-width:760px;margin:0 auto;padding:14px 16px 190px}
 .cell[data-c="pm"]{background:var(--pm-bg);border-color:transparent} .cell[data-c="pm"] .mk,.cell[data-c="pm"] .tm{color:var(--pm)}
 .cell[data-c="tm"]{background:var(--tm-bg);border-color:transparent} .cell[data-c="tm"] .mk,.cell[data-c="tm"] .tm{color:var(--tm)}
 .cell[data-c="ng"]{background:var(--ng-bg);border-color:transparent} .cell[data-c="ng"] .mk{color:var(--ng)}
+.cell .cnt{font-size:8px;line-height:1.1;color:var(--ink-3);font-family:var(--mono)}
+.cell.off{background:var(--surface-2);cursor:default}
+.cell.off .mk{font-size:11px;font-weight:600;color:var(--ink-3)}
 /* いまシフトに入っている日は、太い枠で分かるようにする */
 .cell.asg{box-shadow:inset 0 0 0 2px var(--ok)}
 .cell.asg.draft{box-shadow:inset 0 0 0 2px var(--warn)}
@@ -325,6 +328,8 @@ function renderCal(){
   var first=new Date(y,m,1).getDay(), last=new Date(y,m+1,0).getDate();
   var d=cur().days, html="";
   var pr=pubCache[ymOf(view)], asg=myAssigned(pr), draft=isDraftPub(pr), nAsg=0;
+  var pubDays=(pr&&pr.days)||null, off={};
+  if(pr&&pr.closed) pr.closed.forEach(function(x){ off[String(x)]=1 });
   for(var i=0;i<first;i++) html+='<div class="cell blank"></div>';
   for(var day=1;day<=last;day++){
     var dow=new Date(y,m,day).getDay();
@@ -332,16 +337,25 @@ function renderCal(){
     var kind=code?(F.isTime(code)?"tm":code):"";
     var mark=kind==="ok"?"○":kind==="am"?"AM":kind==="pm"?"PM":"";
     var on=!!asg[String(day)]; if(on) nAsg++;
-    html+='<div class="cell s'+dow+(on?(draft?" asg draft":" asg"):"")+'" data-d="'+day+'" data-c="'+kind+'">'+
+    var isOff=!!off[String(day)];
+    var cnt=(!isOff&&pubDays&&Array.isArray(pubDays[String(day)]))?pubDays[String(day)].length:0;
+    html+='<div class="cell s'+dow+(isOff?" off":"")+(on?(draft?" asg draft":" asg"):"")+
+        '" data-d="'+day+'" data-c="'+(isOff?"":kind)+'">'+
       '<span class="d">'+day+'</span>'+
-      (kind==="tm"?'<span class="tm">'+esc(F.timeText(code)).replace("-","-<br>")+'</span>'
-                  :'<span class="mk">'+mark+'</span>')+
+      (isOff ? '<span class="mk">休</span>'
+             : (kind==="tm"?'<span class="tm">'+esc(F.timeText(code)).replace("-","-<br>")+'</span>'
+                           :'<span class="mk">'+mark+'</span>'))+
+      (cnt?'<span class="cnt">'+cnt+'人</span>':'')+
       '</div>';
   }
   $("#cal").innerHTML=html;
   var hint=$("#asgHint");
-  hint.hidden=!nAsg;
-  hint.textContent=nAsg? "太い枠の日は、いま"+(draft?"仮で":"")+"シフトに入っている日です（"+nAsg+"日）。くわしくは右上の「シフト表」で見られます。" : "";
+  var t=[];
+  if(pubDays) t.push("日にちの下の「◯人」は、いま"+(draft?"仮で":"")+"その日に入っている人数です");
+  if(nAsg) t.push("太い枠は、あなたが入っている日（"+nAsg+"日）");
+  if(t.length) t.push("くわしくは右上の「シフト表」で見られます。");
+  hint.hidden=!t.length;
+  hint.textContent=t.join("。").replace("。。","。");
   renderSummary();
 }
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
@@ -371,6 +385,7 @@ function renderDowBtns(){
 var timeTarget=null;
 $("#cal").addEventListener("click",function(e){
   var cell=e.target.closest(".cell[data-d]"); if(!cell) return;
+  if(cell.classList.contains("off")){ toast("この日は店休日です"); return }
   var day=cell.dataset.d, d=cur().days;
   if(brush==="tm"){ timeTarget=day; openTime(day); return }
   if(d[day]===brush) delete d[day];               /* 同じものをもう一度押したら消す */
@@ -387,9 +402,11 @@ $("#dowNg").addEventListener("click",function(e){
   if(brush==="tm"){ toast("時間指定は日ごとに入れてください"); return }
   var dow=+b.dataset.dow, y=view.getFullYear(), m=view.getMonth();
   var last=new Date(y,m+1,0).getDate(), d=cur().days;
+  var pr=pubCache[ymOf(view)], off={};
+  if(pr&&pr.closed) pr.closed.forEach(function(x){ off[String(x)]=1 });   /* 店休日は入れない */
   var all=true;
-  for(var i=1;i<=last;i++) if(new Date(y,m,i).getDay()===dow && d[String(i)]!==brush) all=false;
-  for(var j=1;j<=last;j++) if(new Date(y,m,j).getDay()===dow){
+  for(var i=1;i<=last;i++) if(new Date(y,m,i).getDay()===dow && !off[String(i)] && d[String(i)]!==brush) all=false;
+  for(var j=1;j<=last;j++) if(new Date(y,m,j).getDay()===dow && !off[String(j)]){
     if(all) delete d[String(j)]; else d[String(j)]=brush;
   }
   save(); renderCal();
