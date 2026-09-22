@@ -49,7 +49,11 @@ main{flex:1;width:100%;max-width:760px;margin:0 auto;padding:14px 16px 190px}
 .cell[data-c="pm"]{background:var(--pm-bg);border-color:transparent} .cell[data-c="pm"] .mk,.cell[data-c="pm"] .tm{color:var(--pm)}
 .cell[data-c="tm"]{background:var(--tm-bg);border-color:transparent} .cell[data-c="tm"] .mk,.cell[data-c="tm"] .tm{color:var(--tm)}
 .cell[data-c="ng"]{background:var(--ng-bg);border-color:transparent} .cell[data-c="ng"] .mk{color:var(--ng)}
-.cell .cnt{font-size:8px;line-height:1.1;color:var(--ink-3);font-family:var(--mono)}
+/* その日に入っている人の名前。色はスタッフごとの色 */
+.cell .nms{display:flex;flex-direction:column;width:100%;margin-top:1px;min-width:0}
+.cell .nm{font-size:var(--nf,8px);line-height:1.3;font-weight:700;color:var(--c,var(--ink-3));
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
+.cal.names .cell{aspect-ratio:auto;min-height:56px;justify-content:flex-start}
 .cell.off{background:var(--surface-2);cursor:default}
 .cell.off .mk{font-size:11px;font-weight:600;color:var(--ink-3)}
 /* いまシフトに入っている日は、太い枠で分かるようにする */
@@ -263,7 +267,11 @@ function fitToast(){
   var el=document.querySelector(".palette");
   if(el) document.documentElement.style.setProperty("--palh", el.offsetHeight+"px");
 }
-window.addEventListener("resize",fitToast);
+var _fitT=null;
+window.addEventListener("resize",function(){
+  fitToast();
+  clearTimeout(_fitT); _fitT=setTimeout(function(){ if(window.fitCellNames) fitCellNames() },150);
+});
 if(window.ResizeObserver){
   var _ro=new ResizeObserver(fitToast);
   var _p=document.querySelector(".palette"); if(_p) _ro.observe(_p);
@@ -284,6 +292,35 @@ function myAssigned(r){
   return out;
 }
 function isDraftPub(r){ return !!(r&&r.days&&r.days._meta&&r.days._meta.draft) }
+/* マスは狭いので時間は短く（13:00-17:00 → 13-17） */
+function shortT(x){
+  var m=String(x||"").match(/^(\d{1,2}):(\d{2})(?:-(\d{1,2}):(\d{2})|[-〜~])?(から)?$/);
+  if(!m) return x;
+  var f=(m[2]==="00")?String(+m[1]):(+m[1])+":"+m[2];
+  if(!m[3]) return f+"〜";
+  var t=(m[4]==="00")?String(+m[3]):(+m[3])+":"+m[4];
+  return f+"-"+t;
+}
+/* 名前が折り返さないよう、いちばん長いものに合わせて全体を縮める */
+window.fitCellNames=fitCellNames;
+function fitCellNames(){
+  var box=$("#cal");
+  box.style.removeProperty("--nf");
+  var els=box.querySelectorAll(".nm");
+  if(!els.length) return;
+  var size=parseFloat(getComputedStyle(els[0]).fontSize)||8;
+  for(var pass=0;pass<4;pass++){
+    var worst=1;
+    for(var i=0;i<els.length;i++){
+      var el=els[i], av=el.clientWidth, need=el.scrollWidth;
+      if(av>0&&need>av) worst=Math.min(worst,av/need);
+    }
+    if(worst>=1) break;
+    size=Math.max(5,Math.floor(size*worst*20)/20-0.05);
+    box.style.setProperty("--nf",size+"px");
+    if(size<=5) break;
+  }
+}
 async function loadPub(){
   if(!connOn()) return;
   var k=ymOf(view);
@@ -328,7 +365,7 @@ function renderCal(){
   var first=new Date(y,m,1).getDay(), last=new Date(y,m+1,0).getDate();
   var d=cur().days, html="";
   var pr=pubCache[ymOf(view)], asg=myAssigned(pr), draft=isDraftPub(pr), nAsg=0;
-  var pubDays=(pr&&pr.days)||null, off={};
+  var pubDays=(pr&&pr.days)||null, off={}, anyName=false;
   if(pr&&pr.closed) pr.closed.forEach(function(x){ off[String(x)]=1 });
   for(var i=0;i<first;i++) html+='<div class="cell blank"></div>';
   for(var day=1;day<=last;day++){
@@ -338,20 +375,27 @@ function renderCal(){
     var mark=kind==="ok"?"○":kind==="am"?"AM":kind==="pm"?"PM":"";
     var on=!!asg[String(day)]; if(on) nAsg++;
     var isOff=!!off[String(day)];
-    var cnt=(!isOff&&pubDays&&Array.isArray(pubDays[String(day)]))?pubDays[String(day)].length:0;
+    var who=(!isOff&&pubDays&&Array.isArray(pubDays[String(day)]))?pubDays[String(day)]:[];
+    if(who.length) anyName=true;
+    var nms=who.map(function(x){
+      var lb=(x.label&&x.label!=="終日")?" "+shortT(x.label):"";
+      return '<span class="nm" style="--c:'+esc(x.c||"#8B857A")+'">'+esc(x.name)+esc(lb)+'</span>';
+    }).join("");
     html+='<div class="cell s'+dow+(isOff?" off":"")+(on?(draft?" asg draft":" asg"):"")+
         '" data-d="'+day+'" data-c="'+(isOff?"":kind)+'">'+
       '<span class="d">'+day+'</span>'+
       (isOff ? '<span class="mk">休</span>'
              : (kind==="tm"?'<span class="tm">'+esc(F.timeText(code)).replace("-","-<br>")+'</span>'
                            :'<span class="mk">'+mark+'</span>'))+
-      (cnt?'<span class="cnt">'+cnt+'人</span>':'')+
+      (nms?'<span class="nms">'+nms+'</span>':'')+
       '</div>';
   }
   $("#cal").innerHTML=html;
+  $("#cal").classList.toggle("names",anyName);
+  requestAnimationFrame(fitCellNames);
   var hint=$("#asgHint");
   var t=[];
-  if(pubDays) t.push("日にちの下の「◯人」は、いま"+(draft?"仮で":"")+"その日に入っている人数です");
+  if(anyName) t.push("日にちの下の名前は、いま"+(draft?"仮で":"")+"その日に入っている人です");
   if(nAsg) t.push("太い枠は、あなたが入っている日（"+nAsg+"日）");
   if(t.length) t.push("くわしくは右上の「シフト表」で見られます。");
   hint.hidden=!t.length;
