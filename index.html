@@ -66,9 +66,16 @@ main{flex:1;width:100%;max-width:760px;margin:0 auto;padding:14px 16px 190px}
 .pal[data-c="ng"][aria-pressed="true"]{background:var(--ng-bg);border-color:var(--ng);color:var(--ng)}
 .pal[data-c="ok"] .m{color:var(--ok)} .pal[data-c="am"] .m{color:var(--am)} .pal[data-c="pm"] .m{color:var(--pm)}
 .pal[data-c="tm"] .m{color:var(--tm)} .pal[data-c="ng"] .m{color:var(--ng)}
-.sendrow{display:flex;gap:8px;align-items:center}
-.sendrow .btn{flex:1}
-.count{font-size:11.5px;color:var(--ink-3);font-family:var(--mono);white-space:nowrap}
+.sendrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.sendrow .btn{flex:1;white-space:nowrap}
+.count{flex:1 0 100%;font-size:11.5px;color:var(--ink-3);font-family:var(--mono);
+  white-space:normal;line-height:1.6}
+.count b{color:var(--ink-2)}
+/* お知らせ（トースト）が下のボタンに重ならないように、パレットの高さぶん持ち上げる */
+.toast{bottom:calc(var(--palh,170px) + 12px)}
+/* まだ店長とつながっていないときのお知らせ */
+#connCard{border-color:var(--warn)}
+#connCard .ttl{color:var(--warn);font-weight:800;margin-bottom:6px}
 
 .quick{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
 .quick .lbl{width:100%}
@@ -104,6 +111,13 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
   </div></header>
 
   <main>
+    <div class="card" id="connCard" hidden><div class="card-b">
+      <div class="ttl">まだ店長とつながっていません</div>
+      <p class="lbl" style="line-height:1.8">このままでは送れません。店長から届いたリンクをもう一度開くとつながります。<br>
+        リンクが見つからないときは、下のボタンから貼りつけてください。</p>
+      <div class="row" style="margin-top:9px"><button class="btn sm" id="connBtn">リンクを貼ってつなぐ</button></div>
+    </div></div>
+
     <div class="monthbar">
       <button id="prevM" aria-label="前の月">←</button>
       <span id="monthLbl" class="mono"></span>
@@ -144,6 +158,16 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
 </div>
 
 <!-- 名前 -->
+<div class="sheet" id="connSheet" hidden><div class="sheet-in" role="dialog" aria-modal="true" aria-label="つなぐ">
+  <div class="sheet-h"><h2>店長とつなぐ</h2><button class="btn sm ghost" id="connClose" style="margin-left:auto">閉じる</button></div>
+  <div class="sec">
+    <div class="lbl" style="margin-bottom:6px">店長から届いたリンクを、そのまま貼ってください</div>
+    <textarea id="connIn" rows="3" placeholder="https://keiki-takemoto.github.io/shift/?c=…" style="width:100%"></textarea>
+    <p class="note">LINEのリンクを長押し →「コピー」→ ここに貼りつけ。一度つなげば、次からは何もしなくて大丈夫です。</p>
+    <div class="row" style="margin-top:12px"><button class="btn primary" id="connSave">つなぐ</button></div>
+  </div>
+</div></div>
+
 <div class="sheet" id="nameSheet" hidden><div class="sheet-in" role="dialog" aria-modal="true" aria-label="名前">
   <div class="sheet-h"><h2>名前</h2><button class="btn sm ghost" id="nameClose" style="margin-left:auto">閉じる</button></div>
   <div class="sec">
@@ -204,19 +228,39 @@ if(today.getDate()>=15) view.setMonth(view.getMonth()+1);   /* 月後半なら�
 var name=get(K_NAME,"")||"";
 var sent=get(K_SENT,{})||{};        /* 送信ずみの記録 { "2026-10": "2026-09-19 20:00" } */
 
-/* 店長から配られたURLに設定が入っていれば取り込む（?c=…） */
-(function(){
+/* 店長から配られたリンクの設定（?c=…）を取り込む。
+   URLからは消さない。消してしまうと、ホーム画面に追加したときに設定が引き継がれず、
+   次に開いたときに「つながっていない」状態になってしまうため。 */
+function applyConn(text){
   try{
-    var q=new URLSearchParams(location.search), c=q.get("c");
-    if(c){
-      var o=JSON.parse(atob(decodeURIComponent(c)));
-      if(o&&o.u&&o.a){ set(K_SYNC,{url:o.u,anon:o.a,code:o.c||""}); }
-      history.replaceState(null,"",location.pathname);
-    }
-  }catch(e){}
+    var t=String(text||"").trim();
+    var m=t.match(/[?&#]c=([^&#\s]+)/);
+    var c=m?m[1]:t;
+    if(!c) return false;
+    var o=JSON.parse(atob(decodeURIComponent(c)));
+    if(!(o&&o.u&&o.a)) return false;
+    set(K_SYNC,{url:o.u,anon:o.a,code:o.c||""});
+    if(window.Sync) Sync.configure({url:o.u,anon:o.a,code:o.c||""});
+    return true;
+  }catch(e){ return false }
+}
+(function(){
+  var c=new URLSearchParams(location.search).get("c");
+  if(c) applyConn(c);
   var cfg=get(K_SYNC,null);
   if(cfg&&cfg.url&&cfg.anon&&window.Sync){ Sync.configure(cfg); }
 })();
+function connOn(){ return !!(window.Sync&&Sync.isOn()) }
+/* 下のバーの高さを測っておく（お知らせがボタンに重ならないように） */
+function fitToast(){
+  var el=document.querySelector(".palette");
+  if(el) document.documentElement.style.setProperty("--palh", el.offsetHeight+"px");
+}
+window.addEventListener("resize",fitToast);
+if(window.ResizeObserver){
+  var _ro=new ResizeObserver(fitToast);
+  var _p=document.querySelector(".palette"); if(_p) _ro.observe(_p);
+}
 var store=get(K_REQ,{})||{};        /* { "2026-10": {days:{}, note:""} } */
 var brush="ok";
 
@@ -232,7 +276,8 @@ function renderHead(){
   $("#monthLbl").textContent=view.getFullYear()+"年"+(view.getMonth()+1)+"月";
   var s=sent[ymOf(view)];
   $("#whoLbl").textContent=(s?"✓ ":"")+(name?name+" さん":"名前が未設定");
-  $("#openShift").hidden=!(window.Sync&&Sync.isOn());
+  $("#openShift").hidden=!connOn();
+  $("#connCard").hidden=connOn();
 }
 function renderCal(){
   var y=view.getFullYear(), m=view.getMonth();
@@ -260,13 +305,15 @@ function renderSummary(){
     var c=d[k]; if(!c) return; total++;
     if(F.isTime(c)) n.tm++; else if(n[c]!==undefined) n[c]++;
   });
-  if(!total){ $("#summary").textContent="出られる日を選んでください"; return }
+  var sentAt=sent[ymOf(view)];
+  var tail=sentAt ? '　<b>'+String(sentAt).replace("T"," ").slice(5,16).replace("-","/")+' に送信ずみ</b>' : "";
+  if(!total){ $("#summary").innerHTML="出られる日を選んでください"+tail; return }
   var p=[];
   if(n.ok) p.push("終日"+n.ok);
   if(n.am) p.push("AM"+n.am);
   if(n.pm) p.push("PM"+n.pm);
   if(n.tm) p.push("時間"+n.tm);
-  $("#summary").textContent="出られる日 "+total+"日（"+p.join(" ")+"）";
+  $("#summary").innerHTML="出られる日 "+total+"日（"+p.join(" ")+"）"+tail;
 }
 function renderDowBtns(){
   $("#dowNg").innerHTML=DOWN.map(function(w,i){
@@ -337,7 +384,12 @@ $("#timeClear").addEventListener("click",function(){
 /* 送る */
 $("#send").addEventListener("click",async function(){
   if(!name){ toast("先に名前を入れてください"); openName(); return }
-  if(!(window.Sync&&Sync.isOn())){ toast("店長から届いたURLを開くと送れるようになります"); return }
+  if(!connOn()){
+    toast("まだ店長とつながっていません");
+    $("#connCard").hidden=false;
+    $("#connCard").scrollIntoView({behavior:"smooth",block:"center"});
+    return;
+  }
   if(!Object.keys(cur().days).length &&
      !confirm("出られる日が1日も選ばれていません。このまま送りますか？")) return;
   var b=this;
@@ -345,7 +397,7 @@ $("#send").addEventListener("click",async function(){
   try{
     await Sync.submitRequest({name:name,month:ymOf(view),days:cur().days,note:cur().note});
     sent[ymOf(view)]=new Date().toISOString(); set(K_SENT,sent);
-    b.textContent="送りました"; renderHead(); toast("店長に送りました");
+    b.textContent="送りました"; renderHead(); renderSummary(); toast("店長に送りました");
   }catch(e){
     toast((e&&e.code==="offline")
       ? "電波が届いていないようです。つながってからもう一度押してください。"
@@ -485,6 +537,15 @@ $("#openShift").addEventListener("click",async function(){
 $("#shiftToggle").addEventListener("click",function(){
   var t=$("#shiftText"); t.hidden=!t.hidden;
   this.textContent=t.hidden?"文字で見る":"文字を隠す";
+});
+$("#connBtn").addEventListener("click",function(){
+  $("#connIn").value=""; $("#connSheet").hidden=false; $("#connIn").focus();
+});
+$("#connClose").addEventListener("click",function(){ $("#connSheet").hidden=true });
+$("#connSave").addEventListener("click",function(){
+  if(!applyConn($("#connIn").value)){ toast("リンクが読み取れませんでした。もう一度コピーして貼ってください"); return }
+  $("#connSheet").hidden=true; renderHead();
+  toast("つながりました。これで送れます");
 });
 $("#shiftClose").addEventListener("click",function(){ $("#shiftSheet").hidden=true });
 /* 仮のシフトを見て「やっぱりこの日は…」というとき */

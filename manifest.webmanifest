@@ -1,9 +1,8 @@
 {
   "name": "シフト希望を出す",
   "short_name": "シフト希望",
-  "description": "シフトの希望を入力して、LINEで店長に送るためのページ。",
+  "description": "シフトの希望を入力して店長に送るためのページ。",
   "lang": "ja",
-  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
