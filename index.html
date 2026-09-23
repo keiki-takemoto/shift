@@ -288,7 +288,10 @@ function myAssigned(r){
   Object.keys(r.days).forEach(function(d){
     if(!/^\d+$/.test(d)) return;                 /* _meta などは飛ばす */
     (r.days[d]||[]).forEach(function(x){
-      if(String(x.name).replace(/\s|　/g,"")===k) out[d]=x.label||"終日";
+      if(String(x.name).replace(/\s|　/g,"")!==k) return;
+      var L=x.label||"終日";
+      /* 同じ人がAMとPMの2行で入っているときは、その日は終日として扱う */
+      out[d]=(out[d]&&out[d]!==L) ? "終日" : L;
     });
   });
   return out;
