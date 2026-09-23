@@ -600,7 +600,7 @@ function drawShift(r,y,m){
     var show=(list.length>LINES)?LINES-1:list.length;
     for(var i=0;i<show;i++){
       var e=list[i];
-      var txt=e.name+(e.label&&e.label!=="終日"?" "+e.label:"");
+      var txt=e.name+(e.label&&e.label!=="終日"?" "+shortT(e.label):"");
       var fs=30;
       g.font="bold "+fs+"px "+UI;
       while(g.measureText(txt).width>cw-40&&fs>16){ fs-=1; g.font="bold "+fs+"px "+UI }
@@ -654,7 +654,7 @@ $("#openShift").addEventListener("click",async function(){
         (mine?'font-weight:700':'color:var(--ink-2)')+'">'+
         '<span class="mono" style="min-width:4.2em">'+d+'日('+W[new Date(y,m,d).getDay()]+')</span>'+
         '<span>'+(closed[String(d)]?"休業":(list.length?list.map(function(x){
-          return esc(x.name)+(x.label&&x.label!=="終日"?"("+esc(x.label)+")":"")}).join("、"):"—"))+'</span>'+
+          return esc(x.name)+(x.label&&x.label!=="終日"?"("+esc(shortT(x.label))+")":"")}).join("、"):"—"))+'</span>'+
         (mine?'<span style="margin-left:auto;color:var(--ok)">出勤</span>':'')+'</div>';
     }
     $("#shiftText").innerHTML=rows;
