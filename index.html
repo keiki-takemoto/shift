@@ -226,7 +226,8 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
 "use strict";
 var F=window.ShiftFormat;
 var $=function(s){return document.querySelector(s)};
-var K_NAME="shift.name.v1", K_REQ="shift.req.v1", K_SYNC="shift.sync.v1", K_SENT="shift.sent.v1";
+var K_NAME="shift.name.v1", K_REQ="shift.req.v1", K_SYNC="shift.sync.v1", K_SENT="shift.sent.v1",
+    K_MERGED="shift.merged.v1";
 var DOWN=["日","月","火","水","木","金","土"];
 function get(k,f){try{var v=localStorage.getItem(k);return v==null?f:JSON.parse(v)}catch(e){return f}}
 function set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
@@ -238,6 +239,7 @@ var view=new Date(today.getFullYear(),today.getMonth(),1);
 if(today.getDate()>=15) view.setMonth(view.getMonth()+1);   /* 月後半なら翌月を最初に出す */
 var name=get(K_NAME,"")||"";
 var sent=get(K_SENT,{})||{};        /* 送信ずみの記録 { "2026-10": "2026-09-19 20:00" } */
+var merged=get(K_MERGED,{})||{};    /* どのシフトの「入っている日」を取り込みずみか */
 
 /* 店長から配られたリンクの設定（?c=…）を取り込む。
    URLからは消さない。消してしまうと、ホーム画面に追加したときに設定が引き継がれず、
@@ -292,6 +294,20 @@ function myAssigned(r){
   return out;
 }
 function isDraftPub(r){ return !!(r&&r.days&&r.days._meta&&r.days._meta.draft) }
+/* 「いま入っている日を先に入れておく」のは、そのシフトにまだ返事をしていないときだけ。
+   返事をしたあと（自分で直して送ったあと）に入れ直すと、直したところが元に戻ってしまう。 */
+function pubTime(r){
+  var m=String((r&&r.publishedAt)||"").match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
+  return m ? (Date.parse(m[1]+"-"+m[2]+"-"+m[3]+"T"+m[4]+":"+m[5]+":"+m[6]+"+09:00")||0) : 0;
+}
+function canPrefill(r,k){
+  if(!r||!r.days) return false;
+  if(merged[k]===(r.publishedAt||"")) return false;   /* このシフトではもう入れた */
+  var s=sent[k]?(Date.parse(sent[k])||0):0;
+  if(!s) return true;                                  /* この端末でまだ一度も送っていない */
+  return pubTime(r) > s;                               /* 自分が送ったあとに出されたシフトだけ */
+}
+function markPrefilled(r,k){ merged[k]=(r&&r.publishedAt)||""; set(K_MERGED,merged) }
 /* マスは狭いので時間は短く（13:00-17:00 → 13-17） */
 function shortT(x){
   var m=String(x||"").match(/^(\d{1,2}):(\d{2})(?:-(\d{1,2}):(\d{2})|[-〜~])?(から)?$/);
@@ -328,7 +344,9 @@ async function loadPub(){
   try{ pubCache[k]=await Sync.getShift(k) }catch(e){ pubCache[k]=null }
   /* この端末でまだ何も入れていない人には、いま入っている日を先に入れておく
      （機種変更などで手元のデータが消えていても、空のまま送ってしまわないように） */
-  if(!sent[k] && !Object.keys(cur().days).length) mergeAssigned();
+  if(canPrefill(pubCache[k],k) && !Object.keys(cur().days).length){
+    if(mergeAssigned()) markPrefilled(pubCache[k],k);
+  }
   renderCal();
 }
 /* いま入っている日を、自分の希望にも入れておく（すでに選んである日はそのまま） */
@@ -659,7 +677,9 @@ $("#shiftClose").addEventListener("click",function(){ $("#shiftSheet").hidden=tr
 /* 仮のシフトを見て「やっぱりこの日は…」というとき */
 $("#shiftFlag").addEventListener("click",function(e){
   if(!e.target.closest("#shiftRedo")) return;
-  var n=mergeAssigned();
+  var k=ymOf(view), pr=pubCache[k];
+  var n=canPrefill(pr,k) ? mergeAssigned() : 0;
+  if(n) markPrefilled(pr,k);
   $("#shiftSheet").hidden=true;
   window.scrollTo({top:0});
   toast(n ? "いま入っている "+n+"日 を入れました"
