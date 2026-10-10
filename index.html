@@ -169,6 +169,18 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
 </div>
 
 <!-- 名前 -->
+<div class="sheet" id="missSheet" hidden><div class="sheet-in" role="dialog" aria-modal="true" aria-label="確認">
+  <div class="sheet-h"><h2>そのまま送ると消えてしまいます</h2>
+    <button class="btn sm ghost" id="missClose" style="margin-left:auto">やめる</button></div>
+  <div class="sec">
+    <p class="lbl" id="missBody" style="line-height:1.9"></p>
+    <div class="row" style="margin-top:14px;flex-direction:column;align-items:stretch;gap:9px">
+      <button class="btn primary" id="missKeep">入っている日も入れて送る</button>
+      <button class="btn ghost" id="missAsis">このまま送る（その日は出られません）</button>
+    </div>
+  </div>
+</div></div>
+
 <div class="sheet" id="connSheet" hidden><div class="sheet-in" role="dialog" aria-modal="true" aria-label="つなぐ">
   <div class="sheet-h"><h2>店長とつなぐ</h2><button class="btn sm ghost" id="connClose" style="margin-left:auto">閉じる</button></div>
   <div class="sec">
@@ -520,7 +532,13 @@ $("#send").addEventListener("click",async function(){
   }
   if(!Object.keys(cur().days).length &&
      !confirm("出られる日が1日も選ばれていません。このまま送りますか？")) return;
-  var b=this;
+  /* いまシフトに入っている日が選ばれていないと、送った時点でその日は「出られない」になる。
+     足すつもりで消してしまう事故が起きるので、送る前に必ず確かめる。 */
+  var miss=missingAssigned();
+  if(miss.length){ openMiss(miss); return }
+  doSend(this);
+});
+async function doSend(b){
   b.disabled=true; b.textContent="送っています…";
   try{
     await Sync.submitRequest({name:name,month:ymOf(view),days:cur().days,note:cur().note});
@@ -533,6 +551,28 @@ $("#send").addEventListener("click",async function(){
   }finally{
     setTimeout(function(){ b.disabled=false; b.textContent="この内容で送る" },1600);
   }
+}
+/* いまシフトに入っているのに、希望で選ばれていない日 */
+function missingAssigned(){
+  var asg=myAssigned(pubCache[ymOf(view)]), d=cur().days, out=[];
+  Object.keys(asg).forEach(function(k){ if(!d[k]) out.push(+k) });
+  return out.sort(function(a,b){ return a-b });
+}
+function openMiss(miss){
+  $("#missBody").innerHTML='いま'+(isDraftPub(pubCache[ymOf(view)])?"仮の":"")+'シフトに入っている <b>'+
+    miss.map(function(d){return d+"日"}).join("・")+'</b> が選ばれていません。<br>'+
+    'このまま送ると、店長には<b>「その日は出られません」</b>と伝わり、シフトから外れてしまいます。';
+  $("#missSheet").hidden=false;
+}
+$("#missClose").addEventListener("click",function(){ $("#missSheet").hidden=true });
+$("#missKeep").addEventListener("click",function(){
+  mergeAssigned();                       /* 入っている日を戻してから送る */
+  $("#missSheet").hidden=true;
+  doSend($("#send"));
+});
+$("#missAsis").addEventListener("click",function(){
+  $("#missSheet").hidden=true;
+  doSend($("#send"));
 });
 
 /* 確定シフトを1枚の画像に描く。スタッフはこれを長押しして保存・転送できる。 */
