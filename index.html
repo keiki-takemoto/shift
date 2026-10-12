@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>シフト希望を出す</title>
 <meta name="description" content="店舗スタッフがシフトの希望を入力して、LINEで店長に送るためのページ。">
 <link rel="manifest" href="./manifest.webmanifest">
@@ -15,6 +15,10 @@
 <link rel="icon" href="./icons/favicon-32.png" sizes="32x32">
 <link rel="stylesheet" href="./shared/theme.css">
 <style>
+/* 画面が勝手に拡大・縮小しないようにする。スクロール中に指が当たって
+   拡大されると、どこを見ているか分からなくなるため。 */
+html,body{touch-action:pan-x pan-y}
+
 .app{min-height:100%;display:flex;flex-direction:column;
   padding-top:env(safe-area-inset-top,0px);padding-bottom:calc(env(safe-area-inset-bottom,0px))}
 .top{position:sticky;top:0;z-index:30;background:var(--bg);border-bottom:1px solid var(--line);
@@ -225,7 +229,7 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
     <div id="shiftFlag" hidden></div>
     <img id="shiftImg" alt="確定シフトの表" hidden
          style="width:100%;height:auto;border:1px solid var(--line);border-radius:10px;display:block">
-    <p class="note" id="shiftHint" hidden>画像を長押しすると、写真に保存したり送ったりできます。指で広げると大きくなります。</p>
+    <p class="note" id="shiftHint" hidden>画像を長押しすると、写真に保存したり送ったりできます。保存すれば写真アプリで大きく見られます。<br>細かく見たいときは、下の「文字で見る」が読みやすいです。</p>
     <div class="row" style="margin-top:10px"><button class="btn sm ghost" id="shiftToggle" hidden>文字で見る</button></div>
     <div id="shiftText" hidden style="margin-top:10px"></div>
   </div>
@@ -759,6 +763,12 @@ if("serviceWorker" in navigator){
   document.addEventListener("visibilitychange",swCheck);
   window.addEventListener("pageshow",swCheck);
 }
+/* ピンチやダブルタップでの拡大を止める（iOSはviewportの指定を無視するので、
+   指の動きそのものを受け止めて打ち消す） */
+["gesturestart","gesturechange","gestureend"].forEach(function(ev){
+  document.addEventListener(ev,function(e){ e.preventDefault() },{passive:false});
+});
+document.addEventListener("dblclick",function(e){ e.preventDefault() },{passive:false});
 })();
 </script>
 </body>
