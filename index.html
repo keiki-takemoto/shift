@@ -90,6 +90,15 @@ main{flex:1;width:100%;max-width:760px;margin:0 auto;padding:14px 16px 190px}
 .rep .ans .tx{font-size:13.5px;color:var(--ink);line-height:1.8;white-space:pre-wrap;word-break:break-word}
 .rep .wait{margin-top:10px;font-size:12px;color:var(--ink-3)}
 .rep.new{border-color:var(--ok);box-shadow:inset 0 0 0 1px var(--ok)}
+
+/* ---- ステータス ---- */
+.st{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.st .big{font-size:30px;font-weight:800;font-family:var(--mono);line-height:1.1;color:var(--ink)}
+.st .unit{font-size:14px;font-weight:700;color:var(--ink-2);padding-bottom:3px}
+.st .sub{width:100%;font-size:12px;color:var(--ink-3);margin-top:7px;line-height:1.8}
+.stnone{font-size:13.5px;color:var(--ink-2);line-height:1.9}
+.stnone b{color:var(--warn)}
+.cardh{font-size:12px;letter-spacing:.07em;color:var(--ink-3);font-weight:600;margin-bottom:9px}
 .rep .ract{margin-top:11px;display:flex;justify-content:flex-end}
 .rep .ract .btn{font-size:12.5px;padding:7px 12px}
 .repsec+.repsec{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
@@ -249,7 +258,22 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
   </div></header>
 
   <main>
-    <section class="view" id="v-shift">
+    <section class="view" id="v-status" data-off>
+      <div class="card"><div class="card-b">
+        <div class="cardh">時給</div>
+        <div id="stWage"></div>
+      </div></div>
+      <div class="card"><div class="card-b">
+        <div class="cardh">社歴</div>
+        <div id="stYears"></div>
+      </div></div>
+      <div class="card"><div class="card-b">
+        <div class="cardh">販売力</div>
+        <div id="stSales"></div>
+      </div></div>
+    </section>
+
+    <section class="view" id="v-shift" data-off>
     <div class="seg" id="shiftSeg">
       <button class="segb" data-s="req" aria-selected="true">希望を出す</button>
       <button class="segb" data-s="fix" aria-selected="false">決まったシフト</button>
@@ -337,6 +361,12 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
         <div class="row" style="margin-top:12px"><button class="btn primary" id="cfgNameSave">保存</button></div>
         <p class="note" style="margin-top:10px">店長に分かる名前を入れてください。シフトの希望や報告は、この名前で届きます。<br>
           この端末にだけ保存されます。</p>
+        <div class="fld" style="margin-top:18px;margin-bottom:0">
+          <label for="cfgJoin">入社日</label>
+          <input type="date" id="cfgJoin">
+        </div>
+        <div class="row" style="margin-top:12px"><button class="btn sm" id="cfgJoinSave">入社日を保存</button></div>
+        <p class="note" style="margin-top:10px">入れておくと、<b>ステータス</b>の社歴が自動で出ます。</p>
       </div></div>
 
       <div class="card"><div class="card-b">
@@ -422,7 +452,8 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
 var F=window.ShiftFormat;
 var $=function(s){return document.querySelector(s)};
 var K_NAME="shift.name.v1", K_REQ="shift.req.v1", K_SYNC="shift.sync.v1", K_SENT="shift.sent.v1",
-    K_MERGED="shift.merged.v1", K_REP="shift.reports.v1";
+    K_MERGED="shift.merged.v1", K_REP="shift.reports.v1",
+    K_JOIN="shift.join.v1", K_WAGE="shift.wage.v1";
 var DOWN=["日","月","火","水","木","金","土"];
 function get(k,f){try{var v=localStorage.getItem(k);return v==null?f:JSON.parse(v)}catch(e){return f}}
 function set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
@@ -462,6 +493,7 @@ function connOn(){ return !!(window.Sync&&Sync.isOn()) }
 /* 入口の画面。開くとまずここが出て、押した画面だけを出す */
 document.body.dataset.sub="req";
 var SCREENS=[
+  {k:"status", ic:"📊", nm:"ステータス", ds:"時給・社歴・販売力"},
   {k:"shift",  ic:"🗓️", nm:"シフト",     ds:"希望を出す・決まったシフトを見る"},
   {k:"report", ic:"📝", nm:"店長へ報告", ds:"気づいたことを店長に伝える"},
   {k:"ai",     ic:"💬", nm:"AI店長",     ds:"困ったときに相談する"},
@@ -492,6 +524,7 @@ function showScreen(k){
     document.getElementById("v-"+x.k).toggleAttribute("data-off",x.k!==k);
   });
   if(k==="cfg") renderCfg();
+  if(k==="status") renderStatus();
   document.body.dataset.screen=k;
   $("#scTitle").textContent=(k==="shift")?"シフト希望":t.nm;
   $("#home").hidden=true; $("#app").hidden=false;
@@ -735,6 +768,7 @@ $("#note").addEventListener("input",function(){ cur().note=this.value; save() })
 function openName(){ showScreen("cfg"); setTimeout(function(){ $("#cfgName").focus() },80) }
 function renderCfg(){
   $("#cfgName").value=name;
+  $("#cfgJoin").value=joinDay;
   $("#cfgConn").textContent=connOn()?"つながっています":"まだつながっていません";
   $("#cfgConn").style.color=connOn()?"var(--ok)":"var(--warn)";
   $("#cfgConnBtn").textContent=connOn()?"つなぎ直す":"リンクを貼ってつなぐ";
@@ -745,9 +779,16 @@ $("#cfgNameSave").addEventListener("click",function(){
   if(!v){ toast("名前を入れてください"); $("#cfgName").focus(); return }
   name=v; set(K_NAME,name);
   renderHead(); renderCal(); renderSummary(); renderReports();
+  wageInfo=null; set(K_WAGE,null); pullWage();
   toast("「"+name+"」で送ります");
 });
 $("#cfgName").addEventListener("keydown",function(e){ if(e.key==="Enter") $("#cfgNameSave").click() });
+$("#cfgJoinSave").addEventListener("click",function(){
+  var v=$("#cfgJoin").value;
+  if(!v){ toast("入社日を選んでください"); $("#cfgJoin").focus(); return }
+  joinDay=v; set(K_JOIN,joinDay);
+  toast("入社日を保存しました");
+});
 
 /* 時間指定 */
 function openTime(day){
@@ -975,6 +1016,75 @@ function renderMyDays(r){
     }).join("")+'</div>';
   el.hidden=false;
 }
+
+/* ---------- ステータス ---------- */
+/* 時給は店長が「設定 → スタッフ」で入れたもの。置き場所から自分のぶんだけ受け取る。
+   一度受け取ったら手元に覚えておき、電波が無くても出せるようにする。 */
+/* 店長の名簿と突き合わせるため、空白を取り除いた名前で引く */
+function normName(n){ return String(n==null?"":n).replace(/\s|　/g,"") }
+var joinDay=get(K_JOIN,"")||"";
+var wageInfo=get(K_WAGE,null);
+
+function yearsText(d){
+  var m=String(d||"").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(!m) return null;
+  var from=new Date(+m[1],+m[2]-1,+m[3]);
+  if(isNaN(from.getTime())) return null;
+  var now=new Date(); now.setHours(0,0,0,0);
+  if(from>now) return {y:0,m:0,days:0,future:true};
+  var months=(now.getFullYear()-from.getFullYear())*12+(now.getMonth()-from.getMonth());
+  if(now.getDate()<from.getDate()) months--;
+  if(months<0) months=0;
+  var days=Math.floor((now-from)/86400000);
+  return {y:Math.floor(months/12), m:months%12, days:days};
+}
+function yen(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,",") }
+
+function renderStatus(skipPull){
+  /* --- 時給 --- */
+  var w=$("#stWage");
+  if(wageInfo&&typeof wageInfo.wage==="number"){
+    w.innerHTML='<div class="st"><span class="big">'+yen(wageInfo.wage)+'</span><span class="unit">円 / 時間</span>'+
+      '<span class="sub">店長が決めた金額です。変わると自動で新しくなります。'+
+      (wageInfo.at?'<br>'+esc(wageInfo.at)+' に確認':'')+'</span></div>';
+  }else if(wageInfo&&wageInfo.found===false){
+    w.innerHTML='<div class="stnone">まだ時給が入っていません。<br>店長に聞いてみてください。</div>';
+  }else{
+    w.innerHTML='<div class="stnone">読み込んでいます…</div>';
+  }
+  /* --- 社歴 --- */
+  var y=$("#stYears"), t=yearsText(joinDay);
+  if(!joinDay){
+    y.innerHTML='<div class="stnone"><b>入社日が未設定です。</b><br>'+
+      '<a href="#" data-go2="cfg">設定</a> で入社日を入れると、ここに出ます。</div>';
+  }else if(!t){
+    y.innerHTML='<div class="stnone">入社日を読み取れませんでした。設定で入れ直してください。</div>';
+  }else if(t.future){
+    y.innerHTML='<div class="stnone">入社日はこれからです（'+esc(joinDay.replace(/-/g,"/"))+'）。</div>';
+  }else{
+    var head=(t.y?t.y+"年 ":"")+t.m+"か月";
+    y.innerHTML='<div class="st"><span class="big">'+esc(head)+'</span>'+
+      '<span class="sub">'+esc(joinDay.replace(/-/g,"/"))+' から '+yen(t.days)+'日目です。</span></div>';
+  }
+  /* --- 販売力 --- */
+  $("#stSales").innerHTML='<div class="stnone">レジができたら、売った数や目標の達成ぐあいがここに出ます。<br>'+
+    'いま用意しているところです。</div>';
+  if(!skipPull) pullWage();
+}
+async function pullWage(){
+  if(!connOn()||!name) return;
+  try{
+    var r=await Sync.staffMe(normName(name));
+    wageInfo={found:!!r.found, wage:(typeof r.wage==="number"?r.wage:null),
+      at:new Date().toLocaleString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})};
+    set(K_WAGE,wageInfo);
+    if(document.body.dataset.screen==="status") renderStatus(true);
+  }catch(e){}
+}
+$("#v-status").addEventListener("click",function(e){
+  var a=e.target.closest("[data-go2]"); if(!a) return;
+  e.preventDefault(); showScreen(a.dataset.go2);
+});
 
 /* ---------- 店長へ報告 ---------- */
 /* 送った控えは自分の端末に持つ。返事を読むときは、この控えのIDぶんだけを聞く。
