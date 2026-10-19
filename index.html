@@ -1047,6 +1047,10 @@ function renderStatus(skipPull){
     w.innerHTML='<div class="st"><span class="big">'+yen(wageInfo.wage)+'</span><span class="unit">円 / 時間</span>'+
       '<span class="sub">店長が決めた金額です。変わると自動で新しくなります。'+
       (wageInfo.at?'<br>'+esc(wageInfo.at)+' に確認':'')+'</span></div>';
+  }else if(wageInfo&&wageInfo.personal===false){
+    w.innerHTML='<div class="stnone"><b>このリンクでは時給を出せません。</b><br>'+
+      '時給は<b>自分だけのリンク</b>からでないと見られないようにしてあります。<br>'+
+      '店長に「ステータス用のリンクがほしい」と伝えてください。</div>';
   }else if(wageInfo&&wageInfo.found===false){
     w.innerHTML='<div class="stnone">まだ時給が入っていません。<br>店長に聞いてみてください。</div>';
   }else{
@@ -1072,10 +1076,12 @@ function renderStatus(skipPull){
   if(!skipPull) pullWage();
 }
 async function pullWage(){
-  if(!connOn()||!name) return;
+  if(!connOn()) return;
   try{
-    var r=await Sync.staffMe(normName(name));
-    wageInfo={found:!!r.found, wage:(typeof r.wage==="number"?r.wage:null),
+    /* 名前では引かない。自分のリンクに入っている合言葉から、店長が本人を見分ける */
+    var r=await Sync.staffMe();
+    wageInfo={personal:(r.personal!==false), found:!!r.found,
+      wage:(typeof r.wage==="number"?r.wage:null),
       at:new Date().toLocaleString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})};
     set(K_WAGE,wageInfo);
     if(document.body.dataset.screen==="status") renderStatus(true);
