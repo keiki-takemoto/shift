@@ -73,6 +73,24 @@ main{flex:1;width:100%;max-width:760px;margin:0 auto;padding:14px 16px 190px}
 #myDays .lb{font-size:14px;font-weight:700;color:var(--ok)}
 #myDays .none{font-size:13px;color:var(--ink-2);line-height:1.8}
 
+/* ---- 店長へ報告 ---- */
+.fld{margin-bottom:12px}
+.fld label{display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:6px;font-weight:600}
+.fld input[type=text],.fld textarea{width:100%;font-size:16px;color:var(--ink);background:var(--surface);
+  border:1px solid var(--line-2);border-radius:10px;padding:11px 12px;font-family:inherit;line-height:1.7}
+.fld textarea{min-height:120px;resize:vertical}
+#repSend{width:100%;padding:13px}
+.rep{border:1px solid var(--line);border-radius:12px;padding:12px 13px;background:var(--surface)}
+.rep+.rep{margin-top:10px}
+.rep .rt{font-size:15px;font-weight:700;line-height:1.5}
+.rep .rm{font-size:11.5px;color:var(--ink-3);font-family:var(--mono);margin-top:3px}
+.rep .rb{font-size:13.5px;color:var(--ink-2);line-height:1.8;margin-top:8px;white-space:pre-wrap;word-break:break-word}
+.rep .ans{margin-top:11px;background:var(--ok-bg);border-radius:10px;padding:10px 12px}
+.rep .ans .who{font-size:12px;font-weight:700;color:var(--ok);margin-bottom:5px}
+.rep .ans .tx{font-size:13.5px;color:var(--ink);line-height:1.8;white-space:pre-wrap;word-break:break-word}
+.rep .wait{margin-top:10px;font-size:12px;color:var(--ink-3)}
+.rep.new{border-color:var(--ok);box-shadow:inset 0 0 0 1px var(--ok)}
+
 /* ---- 入口の画面。店舗管理アプリのホームと同じ見た目にそろえてある ---- */
 :root{
   --hgreen:#2BA55F; --hbg:#F2F2F2; --hcard:#FFFFFF; --hline:#E6E6E6;
@@ -278,13 +296,29 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
     </section>
 
     <section class="view" id="v-report" data-off>
+      <div class="card" id="repConn" hidden><div class="card-b">
+        <div class="ttl">まだ店長とつながっていません</div>
+        <p class="lbl" style="line-height:1.8">このままでは送れません。<br>
+          LINEに届いている<b>店長からのリンクを長押し →「コピー」</b>して、
+          <b>シフト</b>の画面から貼りつけてください。</p>
+      </div></div>
+
       <div class="card"><div class="card-b">
-        <div class="soon">
-          <div class="ic">📝</div>
-          <div class="ttl">店長へ報告</div>
-          <p>お店で気づいたことを、ここから店長に送れるようにします。<br>
-            いま用意しているところです。もう少しお待ちください。</p>
+        <div class="fld">
+          <label for="repTitle">題名</label>
+          <input type="text" id="repTitle" placeholder="例）レジのテープが残り少ないです" autocomplete="off">
         </div>
+        <div class="fld">
+          <label for="repBody">内容</label>
+          <textarea id="repBody" placeholder="気づいたこと、困っていること、お願いしたいことなど"></textarea>
+        </div>
+        <button class="btn primary" id="repSend">店長に送る</button>
+        <p class="note" style="margin-top:10px">名前もいっしょに届きます。店長が返事を書くと、この下に出ます。</p>
+      </div></div>
+
+      <div class="card" id="repListCard" hidden><div class="card-b">
+        <div class="lbl" style="margin-bottom:10px">送ったもの</div>
+        <div id="repList"></div>
       </div></div>
     </section>
 
@@ -371,7 +405,7 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
 var F=window.ShiftFormat;
 var $=function(s){return document.querySelector(s)};
 var K_NAME="shift.name.v1", K_REQ="shift.req.v1", K_SYNC="shift.sync.v1", K_SENT="shift.sent.v1",
-    K_MERGED="shift.merged.v1";
+    K_MERGED="shift.merged.v1", K_REP="shift.reports.v1";
 var DOWN=["日","月","火","水","木","金","土"];
 function get(k,f){try{var v=localStorage.getItem(k);return v==null?f:JSON.parse(v)}catch(e){return f}}
 function set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
@@ -423,12 +457,20 @@ $("#grid").innerHTML=SCREENS.map(function(t){
     '<span class="ds">'+t.ds+'</span></button>';
 }).join("");
 function showHome(){
+  if(document.body.dataset.screen==="report"){
+    myReps.forEach(function(r){ if(r.replied) r.seen=true });
+    set(K_REP,myReps);
+  }
   document.body.dataset.screen="home";
   $("#home").hidden=false; $("#app").hidden=true;
   window.scrollTo({top:0});
 }
 function showScreen(k){
   var t=SCREENS.filter(function(x){ return x.k===k })[0]; if(!t) return;
+  if(document.body.dataset.screen==="report"&&k!=="report"){
+    myReps.forEach(function(r){ if(r.replied) r.seen=true });
+    set(K_REP,myReps);
+  }
   SCREENS.forEach(function(x){
     document.getElementById("v-"+x.k).toggleAttribute("data-off",x.k!==k);
   });
@@ -436,8 +478,10 @@ function showScreen(k){
   $("#scTitle").textContent=(k==="shift")?"シフト希望":t.nm;
   $("#home").hidden=true; $("#app").hidden=false;
   window.scrollTo({top:0});
+  fitToast();
+  if(k==="report"){ renderReports(); pullReplies() }
   if(k==="shift"){
-    fitToast(); if(window.fitCellNames) fitCellNames();
+    if(window.fitCellNames) fitCellNames();
     /* 名前の入力は、シフトの画面に入ったときだけ出す。
        入口の上に出ると、何の画面か分からないままになってしまうため。 */
     if(!name&&!namePrompted){ namePrompted=true; setTimeout(openName,400) }
@@ -905,6 +949,59 @@ function renderMyDays(r){
   el.hidden=false;
 }
 
+/* ---------- 店長へ報告 ---------- */
+/* 送った控えは自分の端末に持つ。返事を読むときは、この控えのIDぶんだけを聞く。
+   合言葉はみんな同じなので、名前で引く作りにすると人の報告まで読めてしまうため。 */
+var myReps=get(K_REP,[])||[];
+function repId(){ return "r"+Date.now().toString(36)+Math.random().toString(36).slice(2,7) }
+function renderReports(){
+  $("#repConn").hidden=connOn();
+  if(!myReps.length){ $("#repListCard").hidden=true; return }
+  $("#repListCard").hidden=false;
+  $("#repList").innerHTML=myReps.map(function(r){
+    var ans=r.replied
+      ? '<div class="ans"><div class="who">店長からの返事'+(r.replyAt?"　"+esc(r.replyAt):"")+'</div>'+
+        '<div class="tx">'+esc(r.reply||"")+'</div></div>'
+      : '<div class="wait">まだ返事は来ていません。</div>';
+    return '<div class="rep'+((r.replied&&!r.seen)?" new":"")+'">'+
+      '<div class="rt">'+esc(r.title||"（題名なし）")+'</div>'+
+      '<div class="rm">'+esc(r.at||"")+'</div>'+
+      '<div class="rb">'+esc(r.body||"")+'</div>'+ans+'</div>';
+  }).join("");
+}
+async function pullReplies(){
+  if(!connOn()||!myReps.length) return;
+  try{
+    var res=await Sync.reportListMine(myReps.map(function(r){ return r.id }));
+    var by={}; (res.items||[]).forEach(function(x){ by[x.id]=x });
+    var newly=0;
+    myReps.forEach(function(r){
+      var x=by[r.id]; if(!x) return;
+      if(x.replied&&!r.replied) newly++;
+      r.replied=!!x.replied; r.reply=x.reply||""; r.replyAt=x.replyAt||"";
+    });
+    set(K_REP,myReps); renderReports();
+    if(newly) toast("店長から返事が届いています");
+  }catch(e){}
+}
+$("#repSend").addEventListener("click",async function(){
+  var t=$("#repTitle").value.trim(), b=$("#repBody").value.trim();
+  if(!b){ toast("内容を入れてください"); $("#repBody").focus(); return }
+  if(!connOn()){ toast("まだ店長とつながっていません"); return }
+  if(!name){ toast("先に名前を入れてください"); openName(); return }
+  var btn=this; btn.disabled=true; btn.textContent="送っています…";
+  var r={id:repId(),title:t,body:b};
+  try{
+    var res=await Sync.reportSubmit({id:r.id,name:name,title:t,body:b});
+    r.at=res.at||""; r.replied=false; r.reply=""; r.seen=true;
+    myReps.unshift(r); set(K_REP,myReps);
+    $("#repTitle").value=""; $("#repBody").value="";
+    renderReports();
+    toast("店長に送りました");
+  }catch(e){ toast((e&&e.message)||"送れませんでした") }
+  btn.disabled=false; btn.textContent="店長に送る";
+});
+
 /* 上の切り替え。希望を出す／決まったシフト */
 var sub="req";
 function showSub(k){
@@ -916,7 +1013,8 @@ function showSub(k){
     b.setAttribute("aria-selected",String(b.dataset.s===k));
   });
   window.scrollTo({top:0});
-  if(k==="req"){ fitToast(); if(window.fitCellNames) fitCellNames() }
+  fitToast();
+  if(k==="req"){ if(window.fitCellNames) fitCellNames() }
   else loadFixed();
 }
 $("#shiftSeg").addEventListener("click",function(e){
@@ -933,7 +1031,7 @@ $("#connBtn").addEventListener("click",function(){
 $("#connClose").addEventListener("click",function(){ $("#connSheet").hidden=true });
 $("#connSave").addEventListener("click",function(){
   if(!applyConn($("#connIn").value)){ toast("リンクが読み取れませんでした。もう一度コピーして貼ってください"); return }
-  $("#connSheet").hidden=true; renderHead(); loadPub();
+  $("#connSheet").hidden=true; renderHead(); loadPub(); renderReports();
   toast("つながりました。これで送れます");
 });
 /* 仮のシフトを見て「やっぱりこの日は…」というとき */
