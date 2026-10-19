@@ -28,16 +28,50 @@ html,body{touch-action:pan-x pan-y}
 .top .who{margin-left:auto;font-size:12px;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .top .btn{white-space:nowrap;flex:none}
 main{flex:1;width:100%;max-width:760px;margin:0 auto;padding:14px 16px 190px}
-/* 上のタブ。シフト以外のタブでは、下のパレットも「シフト表」ボタンも出さない */
-.tabs{display:flex;gap:4px;max-width:760px;margin:8px auto 0}
-.tab{flex:1;border:none;background:transparent;border-bottom:3px solid transparent;padding:9px 4px 9px;
-  cursor:pointer;font-size:13.5px;color:var(--ink-3);font-weight:500;white-space:nowrap;
-  font-family:inherit;-webkit-tap-highlight-color:transparent}
-.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent);font-weight:700}
 .view[data-off]{display:none}
-body:not([data-tab="shift"]) .palette{display:none}
-body:not([data-tab="shift"]) #openShift{display:none}
-body:not([data-tab="shift"]) main{padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}
+
+/* ---- 入口の画面。店舗管理アプリのホームと同じ見た目にそろえてある ---- */
+:root{
+  --hgreen:#2BA55F; --hbg:#F2F2F2; --hcard:#FFFFFF; --hline:#E6E6E6;
+  --hink:#1B1B1B; --hink2:#6B6B6B;
+  --hshadow:0 1px 3px rgba(0,0,0,.07), 0 1px 1px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --hgreen:#248F53; --hbg:#121212; --hcard:#1D1D1D; --hline:#2C2C2C;
+  --hink:#F0F0F0; --hink2:#A8A8A8; --hshadow:0 1px 3px rgba(0,0,0,.5);
+}}
+:root[data-theme="dark"]{
+  --hgreen:#248F53; --hbg:#121212; --hcard:#1D1D1D; --hline:#2C2C2C;
+  --hink:#F0F0F0; --hink2:#A8A8A8; --hshadow:0 1px 3px rgba(0,0,0,.5);
+}
+body[data-screen="home"]{background:var(--hbg)}
+#home{min-height:100%;background:var(--hbg);color:var(--hink)}
+.htop{background:var(--hgreen);color:#fff;position:sticky;top:0;z-index:20;
+  padding:calc(env(safe-area-inset-top,0px) + 12px) 14px 14px}
+.htop-in{display:flex;align-items:center;justify-content:center;min-height:38px}
+.htop h1{margin:0;font-size:20px;font-weight:700;letter-spacing:.02em}
+@media (max-width:360px){.htop h1{font-size:18px}}
+.hmain{max-width:560px;margin:0 auto;padding:18px 14px calc(env(safe-area-inset-bottom,0px) + 36px)}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(2,minmax(0,1fr))}
+/* 3つめがひとりぼっちにならないよう、最後が奇数番なら横いっぱいに広げる */
+.grid .tile:last-child:nth-child(odd){grid-column:1 / -1}
+.tile{background:var(--hcard);border:1px solid var(--hline);border-radius:16px;box-shadow:var(--hshadow);
+  padding:26px 14px 22px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  cursor:pointer;text-align:center;min-height:168px;color:inherit;font-family:inherit;
+  transition:transform .12s, box-shadow .12s}
+.tile:active{transform:scale(.985)}
+.tile .ic{font-size:40px;line-height:1.1;margin-bottom:6px}
+.tile .nm{color:var(--hgreen);font-weight:700;font-size:19px;letter-spacing:.01em}
+.tile .ds{color:var(--hink2);font-size:13.5px;line-height:1.5;word-break:auto-phrase}
+/* 各画面の一番上に出す「ホームに戻る」の帯 */
+.homebar{background:var(--hgreen);color:#fff;display:flex;align-items:center;gap:8px;border:none;width:100%;
+  padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px;text-decoration:none;font-weight:700;font-size:15px;
+  font-family:inherit;cursor:pointer;text-align:left}
+.homebar span{opacity:.85;font-weight:500;font-size:13px;margin-left:auto}
+.app .top{padding-top:10px}
+body:not([data-screen="shift"]) .palette{display:none}
+body:not([data-screen="shift"]) #openShift{display:none}
+body:not([data-screen="shift"]) main{padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}
 .soon{text-align:center;padding:22px 6px 24px}
 .soon .ic{font-size:30px;line-height:1.2}
 .soon .ttl{font-size:15px;font-weight:700;margin-top:8px}
@@ -130,17 +164,18 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
 </style>
 </head>
 <body>
-<div class="app">
+<div id="home">
+  <header class="htop"><div class="htop-in"><h1>ホーム</h1></div></header>
+  <main class="hmain"><div class="grid" id="grid"></div></main>
+</div>
+
+<div class="app" id="app" hidden>
+  <button class="homebar" id="toHome">← ホーム<span>ZIPANG</span></button>
   <header class="top"><div class="top-in">
-    <h1>シフト希望</h1>
+    <h1 id="scTitle">シフト希望</h1>
     <span class="who" id="whoLbl"></span>
     <button class="btn sm ghost" id="openShift" hidden>シフト表</button>
     <button class="btn sm ghost" id="openName">名前</button>
-  </div>
-  <div class="tabs">
-    <button class="tab" data-v="shift" aria-selected="true">シフト</button>
-    <button class="tab" data-v="report" aria-selected="false">店長へ報告</button>
-    <button class="tab" data-v="ai" aria-selected="false">AI店長</button>
   </div></header>
 
   <main>
@@ -323,19 +358,46 @@ function applyConn(text){
   if(cfg&&cfg.url&&cfg.anon&&window.Sync){ Sync.configure(cfg); }
 })();
 function connOn(){ return !!(window.Sync&&Sync.isOn()) }
-/* 上のタブ。シフトの画面は今までどおりで、押したときだけ出す */
-document.body.dataset.tab="shift";
-document.querySelector(".tabs").addEventListener("click",function(e){
-  var b=e.target.closest(".tab[data-v]"); if(!b) return;
-  var v=b.dataset.v;
-  ["shift","report","ai"].forEach(function(k){
-    document.getElementById("v-"+k).toggleAttribute("data-off",k!==v);
-  });
-  this.querySelectorAll(".tab").forEach(function(t){ t.setAttribute("aria-selected",String(t===b)) });
-  document.body.dataset.tab=v;
+/* 入口の画面。開くとまずここが出て、押した画面だけを出す */
+var namePrompted=false;
+var SCREENS=[
+  {k:"shift",  ic:"🗓️", nm:"シフト",     ds:"希望を出す・決まったシフトを見る"},
+  {k:"report", ic:"📝", nm:"店長へ報告", ds:"気づいたことを店長に伝える"},
+  {k:"ai",     ic:"💬", nm:"AI店長",     ds:"困ったときに相談する"}
+];
+$("#grid").innerHTML=SCREENS.map(function(t){
+  return '<button class="tile" data-go="'+t.k+'">'+
+    '<span class="ic">'+t.ic+'</span>'+
+    '<span class="nm">'+t.nm+'</span>'+
+    '<span class="ds">'+t.ds+'</span></button>';
+}).join("");
+function showHome(){
+  document.body.dataset.screen="home";
+  $("#home").hidden=false; $("#app").hidden=true;
   window.scrollTo({top:0});
-  if(v==="shift"){ fitToast(); if(window.fitCellNames) fitCellNames() }
+}
+function showScreen(k){
+  var t=SCREENS.filter(function(x){ return x.k===k })[0]; if(!t) return;
+  SCREENS.forEach(function(x){
+    document.getElementById("v-"+x.k).toggleAttribute("data-off",x.k!==k);
+  });
+  document.body.dataset.screen=k;
+  $("#scTitle").textContent=(k==="shift")?"シフト希望":t.nm;
+  $("#home").hidden=true; $("#app").hidden=false;
+  window.scrollTo({top:0});
+  if(k==="shift"){
+    fitToast(); if(window.fitCellNames) fitCellNames();
+    /* 名前の入力は、シフトの画面に入ったときだけ出す。
+       入口の上に出ると、何の画面か分からないままになってしまうため。 */
+    if(!name&&!namePrompted){ namePrompted=true; setTimeout(openName,400) }
+  }
+}
+$("#grid").addEventListener("click",function(e){
+  var b=e.target.closest("[data-go]"); if(!b) return;
+  showScreen(b.dataset.go);
 });
+$("#toHome").addEventListener("click",showHome);
+showHome();
 /* 下のバーの高さを測っておく（お知らせがボタンに重ならないように） */
 function fitToast(){
   var el=document.querySelector(".palette");
@@ -801,7 +863,7 @@ function toast(m){
 
 renderHead(); renderDowBtns(); renderCal(); loadPub();
 $("#note").value=cur().note||"";
-if(!name) setTimeout(openName,400);
+/* 名前を聞くのは、シフトの画面に入ってから（showScreen の中でやっている） */
 /* 新しい版が出ていたら、アプリに戻ってきたときに自動で入れ替える。
    ホーム画面のアプリは、閉じずに切り替えて戻るとページが読み直されず、
    直したものがいつまでも届かないため。 */
