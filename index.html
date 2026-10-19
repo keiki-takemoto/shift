@@ -112,6 +112,8 @@ body[data-screen="home"]{background:var(--hbg)}
   font-family:inherit;cursor:pointer;text-align:left}
 .homebar span{opacity:.85;font-weight:500;font-size:13px;margin-left:auto}
 .app .top{padding-top:10px}
+/* シフトの画面では、上の切り替えが何の画面か示しているので題は出さない */
+body[data-screen="shift"] #scTitle{display:none}
 body:not([data-screen="shift"]) .palette,
 body[data-sub="fix"] .palette{display:none}
 body:not([data-screen="shift"]) main,
