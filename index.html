@@ -28,6 +28,20 @@ html,body{touch-action:pan-x pan-y}
 .top .who{margin-left:auto;font-size:12px;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .top .btn{white-space:nowrap;flex:none}
 main{flex:1;width:100%;max-width:760px;margin:0 auto;padding:14px 16px 190px}
+/* 上のタブ。シフト以外のタブでは、下のパレットも「シフト表」ボタンも出さない */
+.tabs{display:flex;gap:4px;max-width:760px;margin:8px auto 0}
+.tab{flex:1;border:none;background:transparent;border-bottom:3px solid transparent;padding:9px 4px 9px;
+  cursor:pointer;font-size:13.5px;color:var(--ink-3);font-weight:500;white-space:nowrap;
+  font-family:inherit;-webkit-tap-highlight-color:transparent}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent);font-weight:700}
+.view[data-off]{display:none}
+body:not([data-tab="shift"]) .palette{display:none}
+body:not([data-tab="shift"]) #openShift{display:none}
+body:not([data-tab="shift"]) main{padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}
+.soon{text-align:center;padding:22px 6px 24px}
+.soon .ic{font-size:30px;line-height:1.2}
+.soon .ttl{font-size:15px;font-weight:700;margin-top:8px}
+.soon p{font-size:12.5px;color:var(--ink-2);line-height:1.9;margin-top:8px}
 .card+.card{margin-top:14px}
 
 .monthbar{display:flex;align-items:center;gap:10px;justify-content:center;padding:4px 0 12px}
@@ -122,9 +136,15 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
     <span class="who" id="whoLbl"></span>
     <button class="btn sm ghost" id="openShift" hidden>シフト表</button>
     <button class="btn sm ghost" id="openName">名前</button>
+  </div>
+  <div class="tabs">
+    <button class="tab" data-v="shift" aria-selected="true">シフト</button>
+    <button class="tab" data-v="report" aria-selected="false">店長へ報告</button>
+    <button class="tab" data-v="ai" aria-selected="false">AI店長</button>
   </div></header>
 
   <main>
+    <section class="view" id="v-shift">
     <div class="card" id="connCard" hidden><div class="card-b">
       <div class="ttl">まだ店長とつながっていません</div>
       <p class="lbl" style="line-height:1.8">このままでは送れません。<br>
@@ -156,6 +176,29 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
       <div class="lbl" style="margin-bottom:6px">店長に伝えたいこと（任意）</div>
       <textarea id="note" rows="2" placeholder="例）20日以降はテストのため少なめにしてください"></textarea>
     </div></div>
+    </section>
+
+    <section class="view" id="v-report" data-off>
+      <div class="card"><div class="card-b">
+        <div class="soon">
+          <div class="ic">📝</div>
+          <div class="ttl">店長へ報告</div>
+          <p>お店で気づいたことを、ここから店長に送れるようにします。<br>
+            いま用意しているところです。もう少しお待ちください。</p>
+        </div>
+      </div></div>
+    </section>
+
+    <section class="view" id="v-ai" data-off>
+      <div class="card"><div class="card-b">
+        <div class="soon">
+          <div class="ic">💬</div>
+          <div class="ttl">AI店長</div>
+          <p>店長がいないときでも、困ったことを相談できるようにします。<br>
+            いま用意しているところです。もう少しお待ちください。</p>
+        </div>
+      </div></div>
+    </section>
   </main>
 
   <div class="palette"><div class="pal-in">
@@ -280,6 +323,19 @@ function applyConn(text){
   if(cfg&&cfg.url&&cfg.anon&&window.Sync){ Sync.configure(cfg); }
 })();
 function connOn(){ return !!(window.Sync&&Sync.isOn()) }
+/* 上のタブ。シフトの画面は今までどおりで、押したときだけ出す */
+document.body.dataset.tab="shift";
+document.querySelector(".tabs").addEventListener("click",function(e){
+  var b=e.target.closest(".tab[data-v]"); if(!b) return;
+  var v=b.dataset.v;
+  ["shift","report","ai"].forEach(function(k){
+    document.getElementById("v-"+k).toggleAttribute("data-off",k!==v);
+  });
+  this.querySelectorAll(".tab").forEach(function(t){ t.setAttribute("aria-selected",String(t===b)) });
+  document.body.dataset.tab=v;
+  window.scrollTo({top:0});
+  if(v==="shift"){ fitToast(); if(window.fitCellNames) fitCellNames() }
+});
 /* 下のバーの高さを測っておく（お知らせがボタンに重ならないように） */
 function fitToast(){
   var el=document.querySelector(".palette");
