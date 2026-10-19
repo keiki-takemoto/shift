@@ -376,14 +376,6 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
         <div class="row" style="margin-top:12px"><button class="btn sm" id="cfgJoinSave">入社日を保存</button></div>
         <p class="note" style="margin-top:10px">入れておくと、<b>ステータス</b>の社歴が自動で出ます。</p>
       </div></div>
-
-      <div class="card"><div class="card-b">
-        <div class="lbl" style="margin-bottom:8px">店長とのつながり</div>
-        <div id="cfgConn" style="font-size:14px;font-weight:700;line-height:1.6"></div>
-        <div class="row" style="margin-top:11px"><button class="btn sm" id="cfgConnBtn">リンクを貼ってつなぐ</button></div>
-        <p class="note" style="margin-top:10px">LINEに届いている<b>店長からのリンクを長押し →「コピー」</b>して、
-          上のボタンから貼りつけてください。<br>一度つなげば、次からは何もしなくて大丈夫です。</p>
-      </div></div>
     </section>
 
     <section class="view" id="v-ai" data-off>
@@ -505,7 +497,7 @@ var SCREENS=[
   {k:"shift",  ic:"🗓️", nm:"シフト",     ds:"希望を出す・決まったシフトを見る"},
   {k:"report", ic:"📝", nm:"店長へ報告", ds:"気づいたことを店長に伝える"},
   {k:"ai",     ic:"💬", nm:"AI店長",     ds:"困ったときに相談する"},
-  {k:"cfg",    ic:"⚙️", nm:"設定",       ds:"名前・店長とのつながり"}
+  {k:"cfg",    ic:"⚙️", nm:"設定",       ds:"名前・入社日"}
 ];
 $("#grid").innerHTML=SCREENS.map(function(t){
   return '<button class="tile" data-go="'+t.k+'">'+
@@ -786,11 +778,7 @@ function renderCfg(){
   $("#cfgNameShow").textContent=name?name+" さん":"—";
   $("#cfgName").value=name;
   $("#cfgJoin").value=joinDay;
-  $("#cfgConn").textContent=connOn()?"つながっています":"まだつながっていません";
-  $("#cfgConn").style.color=connOn()?"var(--ok)":"var(--warn)";
-  $("#cfgConnBtn").textContent=connOn()?"つなぎ直す":"リンクを貼ってつなぐ";
 }
-$("#cfgConnBtn").addEventListener("click",function(){ $("#connBtn").click() });
 $("#cfgNameSave").addEventListener("click",function(){
   var v=$("#cfgName").value.trim();
   if(!v){ toast("名前を入れてください"); $("#cfgName").focus(); return }
