@@ -30,6 +30,49 @@ html,body{touch-action:pan-x pan-y}
 main{flex:1;width:100%;max-width:760px;margin:0 auto;padding:14px 16px 190px}
 .view[data-off]{display:none}
 
+/* ---- 入口と同じ色づかいにそろえる（theme.css のあとに書いて上書きする）----
+   もとは生成りの背景だったが、入口が白いカード＋緑なので、中の画面も合わせた。 */
+:root{
+  --bg:#F2F2F2; --surface:#FFFFFF; --surface-2:#F5F5F5; --surface-3:#EAEAEA;
+  --line:#E3E3E3; --line-2:#CFCFCF;
+  --ink:#1B1B1B; --ink-2:#565656; --ink-3:#8A8A8A;
+  --accent:#2BA55F; --accent-ink:#FFFFFF; --accent-2:#E2F1E8;
+  --ok:#1F7A4C;   --ok-bg:#DCEFE4;
+  --am:#9A560F;   --am-bg:#FAE8D2;
+  --pm:#3B4C9B;   --pm-bg:#E0E5F7;
+  --tm:#6E3F8C;   --tm-bg:#EDDFF4;
+  --shadow:0 1px 3px rgba(0,0,0,.07), 0 1px 1px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --bg:#121212; --surface:#1D1D1D; --surface-2:#242424; --surface-3:#2C2C2C;
+  --line:#2C2C2C; --line-2:#3E3E3E;
+  --ink:#F0F0F0; --ink-2:#B2B2B2; --ink-3:#8A8A8A;
+  --accent:#248F53; --accent-ink:#FFFFFF; --accent-2:#1D2E24;
+  --ok:#7CC49B; --ok-bg:#16301F;
+  --am:#E0A469; --am-bg:#33250F;
+  --pm:#9AA7E6; --pm-bg:#1F2440;
+  --tm:#C79EE0; --tm-bg:#30233D;
+  --shadow:0 1px 3px rgba(0,0,0,.5);
+}}
+
+/* ---- 「希望を出す」と「決まったシフト」の切り替え ---- */
+.seg{display:flex;gap:0;background:var(--surface-2);border:1px solid var(--line);
+  border-radius:12px;padding:3px;margin-bottom:14px}
+.segb{flex:1;border:none;background:transparent;border-radius:9px;padding:11px 6px;cursor:pointer;
+  font-family:inherit;font-size:14px;font-weight:700;color:var(--ink-3);white-space:nowrap;
+  -webkit-tap-highlight-color:transparent}
+.segb[aria-selected="true"]{background:var(--surface);color:var(--accent);box-shadow:var(--shadow)}
+
+/* ---- 自分の出勤日。スタッフが一番見たいのはここなので、大きく上に出す ---- */
+#myDays{margin:0 0 14px}
+#myDays .hd{font-size:13px;color:var(--ink-2);margin-bottom:10px}
+#myDays .hd b{font-size:16px;color:var(--ok)}
+#myDays .list{display:flex;flex-direction:column;gap:7px}
+#myDays .it{display:flex;align-items:center;gap:10px;background:var(--ok-bg);border-radius:10px;padding:9px 12px}
+#myDays .dt{font-size:16px;font-weight:800;font-family:var(--mono);color:var(--ok);min-width:5.4em}
+#myDays .lb{font-size:14px;font-weight:700;color:var(--ok)}
+#myDays .none{font-size:13px;color:var(--ink-2);line-height:1.8}
+
 /* ---- 入口の画面。店舗管理アプリのホームと同じ見た目にそろえてある ---- */
 :root{
   --hgreen:#2BA55F; --hbg:#F2F2F2; --hcard:#FFFFFF; --hline:#E6E6E6;
@@ -69,9 +112,10 @@ body[data-screen="home"]{background:var(--hbg)}
   font-family:inherit;cursor:pointer;text-align:left}
 .homebar span{opacity:.85;font-weight:500;font-size:13px;margin-left:auto}
 .app .top{padding-top:10px}
-body:not([data-screen="shift"]) .palette{display:none}
-body:not([data-screen="shift"]) #openShift{display:none}
-body:not([data-screen="shift"]) main{padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}
+body:not([data-screen="shift"]) .palette,
+body[data-sub="fix"] .palette{display:none}
+body:not([data-screen="shift"]) main,
+body[data-sub="fix"] main{padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}
 .soon{text-align:center;padding:22px 6px 24px}
 .soon .ic{font-size:30px;line-height:1.2}
 .soon .ttl{font-size:15px;font-weight:700;margin-top:8px}
@@ -85,22 +129,22 @@ body:not([data-screen="shift"]) main{padding-bottom:calc(28px + env(safe-area-in
 
 /* カレンダー */
 .dows{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
-.dows span{text-align:center;font-size:11px;color:var(--ink-3);padding:2px 0}
+.dows span{text-align:center;font-size:12px;font-weight:600;color:var(--ink-2);padding:2px 0}
 .dows .s0{color:var(--sun)} .dows .s6{color:var(--sat)}
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-.cell{aspect-ratio:1/1.12;border:1px solid var(--line);border-radius:9px;background:var(--surface);
+.cell{aspect-ratio:1/1.18;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);
   display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:1px;padding:4px 2px;cursor:pointer;
   min-width:0;overflow:hidden}
 .cell.blank{border:none;background:transparent;cursor:default}
-.cell .d{font-size:12px;color:var(--ink-3);font-family:var(--mono);line-height:1.2}
+.cell .d{font-size:13.5px;font-weight:600;color:var(--ink-2);font-family:var(--mono);line-height:1.25}
 .cell.s0 .d{color:var(--sun)} .cell.s6 .d{color:var(--sat)}
-.cell .mk{font-size:15px;font-weight:700;line-height:1.15}
-.cell .tm{font-size:8.5px;font-family:var(--mono);line-height:1.15;letter-spacing:-.02em}
-.cell[data-c="ok"]{background:var(--ok-bg);border-color:transparent} .cell[data-c="ok"] .mk{color:var(--ok)}
-.cell[data-c="am"]{background:var(--am-bg);border-color:transparent} .cell[data-c="am"] .mk,.cell[data-c="am"] .tm{color:var(--am)}
-.cell[data-c="pm"]{background:var(--pm-bg);border-color:transparent} .cell[data-c="pm"] .mk,.cell[data-c="pm"] .tm{color:var(--pm)}
-.cell[data-c="tm"]{background:var(--tm-bg);border-color:transparent} .cell[data-c="tm"] .mk,.cell[data-c="tm"] .tm{color:var(--tm)}
-.cell[data-c="ng"]{background:var(--ng-bg);border-color:transparent} .cell[data-c="ng"] .mk{color:var(--ng)}
+.cell .mk{font-size:16px;font-weight:800;line-height:1.15}
+.cell .tm{font-size:10px;font-weight:700;font-family:var(--mono);line-height:1.2;letter-spacing:-.03em}
+.cell[data-c="ok"]{background:var(--ok-bg);border-color:var(--ok)} .cell[data-c="ok"] .mk{color:var(--ok)}
+.cell[data-c="am"]{background:var(--am-bg);border-color:var(--am)} .cell[data-c="am"] .mk,.cell[data-c="am"] .tm{color:var(--am)}
+.cell[data-c="pm"]{background:var(--pm-bg);border-color:var(--pm)} .cell[data-c="pm"] .mk,.cell[data-c="pm"] .tm{color:var(--pm)}
+.cell[data-c="tm"]{background:var(--tm-bg);border-color:var(--tm)} .cell[data-c="tm"] .mk,.cell[data-c="tm"] .tm{color:var(--tm)}
+.cell[data-c="ng"]{background:var(--ng-bg);border-color:var(--ng)} .cell[data-c="ng"] .mk{color:var(--ng)}
 /* その日に入っている人の名前。色はスタッフごとの色 */
 .cell .nms{display:flex;flex-direction:column;width:100%;margin-top:1px;min-width:0}
 .cell .nm{font-size:var(--nf,8px);line-height:1.3;font-weight:700;color:var(--c,var(--ink-3));
@@ -140,7 +184,7 @@ body:not([data-screen="shift"]) main{padding-bottom:calc(28px + env(safe-area-in
 #connCard .ttl{color:var(--warn);font-weight:800;margin-bottom:6px}
 
 .quick{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
-.quick .lbl{width:100%}
+.quick .lbl{width:100%;font-size:12.5px;color:var(--ink-2);letter-spacing:0;line-height:1.7}
 /* シート */
 .sheet{position:fixed;inset:0;z-index:70;display:flex;align-items:flex-end;justify-content:center;
   background:rgba(20,16,8,.45)}
@@ -174,12 +218,15 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
   <header class="top"><div class="top-in">
     <h1 id="scTitle">シフト希望</h1>
     <span class="who" id="whoLbl"></span>
-    <button class="btn sm ghost" id="openShift" hidden>シフト表</button>
     <button class="btn sm ghost" id="openName">名前</button>
   </div></header>
 
   <main>
     <section class="view" id="v-shift">
+    <div class="seg" id="shiftSeg">
+      <button class="segb" data-s="req" aria-selected="true">希望を出す</button>
+      <button class="segb" data-s="fix" aria-selected="false">決まったシフト</button>
+    </div>
     <div class="card" id="connCard" hidden><div class="card-b">
       <div class="ttl">まだ店長とつながっていません</div>
       <p class="lbl" style="line-height:1.8">このままでは送れません。<br>
@@ -193,6 +240,7 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
       <button id="nextM" aria-label="次の月">→</button>
     </div>
 
+    <div id="sub-req">
     <div class="card"><div class="card-b" style="padding:12px 10px 14px">
       <div class="dows">
         <span class="s0">日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span class="s6">土</span>
@@ -211,6 +259,20 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
       <div class="lbl" style="margin-bottom:6px">店長に伝えたいこと（任意）</div>
       <textarea id="note" rows="2" placeholder="例）20日以降はテストのため少なめにしてください"></textarea>
     </div></div>
+    </div>
+
+    <div id="sub-fix" hidden>
+      <div class="card"><div class="card-b">
+        <div id="shiftBody"><p class="note">読み込んでいます…</p></div>
+        <div id="shiftFlag" hidden></div>
+        <div id="myDays" hidden></div>
+        <img id="shiftImg" alt="決まったシフトの表" hidden
+             style="width:100%;height:auto;border:1px solid var(--line);border-radius:10px;display:block">
+        <p class="note" id="shiftHint" hidden>画像を長押しすると、写真に保存したり送ったりできます。保存すれば写真アプリで大きく見られます。<br>細かく見たいときは、下の「文字で見る」が読みやすいです。</p>
+        <div class="row" style="margin-top:10px"><button class="btn sm ghost" id="shiftToggle" hidden>文字で見る</button></div>
+        <div id="shiftText" hidden style="margin-top:10px"></div>
+      </div></div>
+    </div>
     </section>
 
     <section class="view" id="v-report" data-off>
@@ -299,20 +361,6 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
   </div>
 </div></div>
 
-<!-- 確定シフト -->
-<div class="sheet" id="shiftSheet" hidden><div class="sheet-in" role="dialog" aria-modal="true" aria-label="確定シフト">
-  <div class="sheet-h"><h2 id="shiftTitle">確定シフト</h2><button class="btn sm ghost" id="shiftClose" style="margin-left:auto">閉じる</button></div>
-  <div class="sec">
-    <div id="shiftBody"><p class="note">読み込んでいます…</p></div>
-    <div id="shiftFlag" hidden></div>
-    <img id="shiftImg" alt="確定シフトの表" hidden
-         style="width:100%;height:auto;border:1px solid var(--line);border-radius:10px;display:block">
-    <p class="note" id="shiftHint" hidden>画像を長押しすると、写真に保存したり送ったりできます。保存すれば写真アプリで大きく見られます。<br>細かく見たいときは、下の「文字で見る」が読みやすいです。</p>
-    <div class="row" style="margin-top:10px"><button class="btn sm ghost" id="shiftToggle" hidden>文字で見る</button></div>
-    <div id="shiftText" hidden style="margin-top:10px"></div>
-  </div>
-</div></div>
-
 <script src="./shared/shift-format.js"></script>
 <script src="./shared/sync.js"></script>
 <script>
@@ -360,6 +408,7 @@ function applyConn(text){
 function connOn(){ return !!(window.Sync&&Sync.isOn()) }
 /* 入口の画面。開くとまずここが出て、押した画面だけを出す */
 var namePrompted=false;
+document.body.dataset.sub="req";
 var SCREENS=[
   {k:"shift",  ic:"🗓️", nm:"シフト",     ds:"希望を出す・決まったシフトを見る"},
   {k:"report", ic:"📝", nm:"店長へ報告", ds:"気づいたことを店長に伝える"},
@@ -512,7 +561,6 @@ function renderHead(){
   $("#monthLbl").textContent=view.getFullYear()+"年"+(view.getMonth()+1)+"月";
   var s=sent[ymOf(view)];
   $("#whoLbl").textContent=(s?"✓ ":"")+(name?name+" さん":"名前が未設定");
-  $("#openShift").hidden=!connOn();
   $("#connCard").hidden=connOn();
 }
 function renderCal(){
@@ -540,7 +588,7 @@ function renderCal(){
         '" data-d="'+day+'" data-c="'+(isOff?"":kind)+'">'+
       '<span class="d">'+day+'</span>'+
       (isOff ? '<span class="mk">休</span>'
-             : (kind==="tm"?'<span class="tm">'+esc(F.timeText(code)).replace("-","-<br>")+'</span>'
+             : (kind==="tm"?'<span class="tm">'+esc(shortT(code)).replace("-","-<br>")+'</span>'
                            :'<span class="mk">'+mark+'</span>'))+
       (nms?'<span class="nms">'+nms+'</span>':'')+
       '</div>';
@@ -614,8 +662,10 @@ $("#resetAll").addEventListener("click",function(){
   if(!confirm("この月の入力を全部消します。よろしいですか？")) return;
   cur().days={}; save(); renderCal();
 });
-$("#prevM").addEventListener("click",function(){ view.setMonth(view.getMonth()-1); renderHead(); renderCal(); loadPub(); $("#note").value=cur().note||"" });
-$("#nextM").addEventListener("click",function(){ view.setMonth(view.getMonth()+1); renderHead(); renderCal(); loadPub(); $("#note").value=cur().note||"" });
+$("#prevM").addEventListener("click",function(){ view.setMonth(view.getMonth()-1); renderHead(); renderCal(); loadPub();
+  $("#note").value=cur().note||""; if(sub==="fix") loadFixed(); });
+$("#nextM").addEventListener("click",function(){ view.setMonth(view.getMonth()+1); renderHead(); renderCal(); loadPub();
+  $("#note").value=cur().note||""; if(sub==="fix") loadFixed(); });
 $("#note").addEventListener("input",function(){ cur().note=this.value; save() });
 
 /* 名前 */
@@ -778,21 +828,26 @@ function drawShift(r,y,m){
 }
 
 /* 確定シフトを見る */
-$("#openShift").addEventListener("click",async function(){
-  $("#shiftTitle").textContent=(view.getMonth()+1)+"月のシフト";
+/* 「決まったシフト」の中身を読む。切り替えたときと、月を動かしたときに呼ぶ */
+async function loadFixed(){
   $("#shiftBody").innerHTML='<p class="note">読み込んでいます…</p>';
   $("#shiftFlag").hidden=true;
-  $("#shiftSheet").hidden=false;
+  $("#shiftImg").hidden=true; $("#shiftHint").hidden=true;
+  $("#shiftToggle").hidden=true; $("#shiftText").hidden=true;
+  $("#myDays").hidden=true;
+  if(!connOn()){
+    $("#shiftBody").innerHTML='<p class="note">まだ店長とつながっていないので、シフトを見られません。'+
+      '<br>上の「まだ店長とつながっていません」から、リンクを貼ってください。</p>';
+    return;
+  }
   try{
     var r=await Sync.getShift(ymOf(view));
     if(!r.days){
-      $("#shiftBody").innerHTML='<p class="note">この月のシフトは、まだ出ていません。</p>';
-      $("#shiftImg").hidden=true; $("#shiftHint").hidden=true; $("#shiftToggle").hidden=true; $("#shiftText").hidden=true;
+      $("#shiftBody").innerHTML='<p class="note">'+(view.getMonth()+1)+'月のシフトは、まだ出ていません。</p>';
       return;
     }
     pubCache[ymOf(view)]=r; renderCal();
     var isDraft=isDraftPub(r);
-    $("#shiftTitle").textContent=(view.getMonth()+1)+"月のシフト"+(isDraft?"（仮）":"（確定）");
     var f=$("#shiftFlag");
     f.className=isDraft?"draft":"fixed";
     f.innerHTML=isDraft
@@ -800,6 +855,7 @@ $("#openShift").addEventListener("click",async function(){
         '<div><button class="btn sm" id="shiftRedo">希望を出し直す</button></div>'
       : '<b>確定したシフトです。</b>';
     f.hidden=false;
+    renderMyDays(r);
     try{
       $("#shiftImg").src=drawShift(r,view.getFullYear(),view.getMonth());
       $("#shiftImg").hidden=false; $("#shiftHint").hidden=false; $("#shiftToggle").hidden=false;
@@ -824,6 +880,46 @@ $("#openShift").addEventListener("click",async function(){
     $("#shiftBody").innerHTML='<p class="note">'+esc((e&&e.message)||"読み込めませんでした")+'</p>';
     $("#shiftImg").hidden=true; $("#shiftHint").hidden=true; $("#shiftToggle").hidden=true;
   }
+}
+
+/* 自分が入っている日だけを、大きく並べる。
+   お店全体の表より先にこれを見たい、というのがスタッフの見方のため。 */
+function renderMyDays(r){
+  var el=$("#myDays");
+  if(!name){ el.hidden=true; return }
+  var mine=myAssigned(r);
+  var y=view.getFullYear(), m=view.getMonth(), W=["日","月","火","水","木","金","土"];
+  var ds=Object.keys(mine).map(Number).sort(function(a,b){ return a-b });
+  if(!ds.length){
+    el.innerHTML='<div class="none">この月は、'+esc(name)+' さんの出勤はありません。</div>';
+    el.hidden=false; return;
+  }
+  el.innerHTML='<div class="hd">'+esc(name)+' さんの出勤　<b>'+ds.length+'日</b></div>'+
+    '<div class="list">'+ds.map(function(d){
+      var L=mine[String(d)]||"終日";
+      return '<div class="it"><span class="dt">'+(m+1)+'/'+d+'（'+W[new Date(y,m,d).getDay()]+'）</span>'+
+        '<span class="lb">'+esc(L==="終日"?"終日":shortT(L))+'</span></div>';
+    }).join("")+'</div>';
+  el.hidden=false;
+}
+
+/* 上の切り替え。希望を出す／決まったシフト */
+var sub="req";
+function showSub(k){
+  sub=k;
+  $("#sub-req").hidden=(k!=="req");
+  $("#sub-fix").hidden=(k!=="fix");
+  document.body.dataset.sub=k;
+  $("#shiftSeg").querySelectorAll(".segb").forEach(function(b){
+    b.setAttribute("aria-selected",String(b.dataset.s===k));
+  });
+  window.scrollTo({top:0});
+  if(k==="req"){ fitToast(); if(window.fitCellNames) fitCellNames() }
+  else loadFixed();
+}
+$("#shiftSeg").addEventListener("click",function(e){
+  var b=e.target.closest(".segb[data-s]"); if(!b) return;
+  showSub(b.dataset.s);
 });
 $("#shiftToggle").addEventListener("click",function(){
   var t=$("#shiftText"); t.hidden=!t.hidden;
@@ -838,15 +934,13 @@ $("#connSave").addEventListener("click",function(){
   $("#connSheet").hidden=true; renderHead(); loadPub();
   toast("つながりました。これで送れます");
 });
-$("#shiftClose").addEventListener("click",function(){ $("#shiftSheet").hidden=true });
 /* 仮のシフトを見て「やっぱりこの日は…」というとき */
 $("#shiftFlag").addEventListener("click",function(e){
   if(!e.target.closest("#shiftRedo")) return;
   var k=ymOf(view), pr=pubCache[k];
   var n=canPrefill(pr,k) ? mergeAssigned() : 0;
   if(n) markPrefilled(pr,k);
-  $("#shiftSheet").hidden=true;
-  window.scrollTo({top:0});
+  showSub("req");
   toast(n ? "いま入っている "+n+"日 を入れました"
           : "直したら「この内容で送る」を押してください");
 });
