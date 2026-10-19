@@ -246,7 +246,6 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
   <header class="top"><div class="top-in">
     <h1 id="scTitle">シフト希望</h1>
     <span class="who" id="whoLbl"></span>
-    <button class="btn sm ghost" id="openName">名前</button>
   </div></header>
 
   <main>
@@ -329,6 +328,26 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
       </div></div>
     </section>
 
+    <section class="view" id="v-cfg" data-off>
+      <div class="card"><div class="card-b">
+        <div class="fld" style="margin-bottom:0">
+          <label for="cfgName">名前</label>
+          <input type="text" id="cfgName" placeholder="例）田中" autocomplete="name">
+        </div>
+        <div class="row" style="margin-top:12px"><button class="btn primary" id="cfgNameSave">保存</button></div>
+        <p class="note" style="margin-top:10px">店長に分かる名前を入れてください。シフトの希望や報告は、この名前で届きます。<br>
+          この端末にだけ保存されます。</p>
+      </div></div>
+
+      <div class="card"><div class="card-b">
+        <div class="lbl" style="margin-bottom:8px">店長とのつながり</div>
+        <div id="cfgConn" style="font-size:14px;font-weight:700;line-height:1.6"></div>
+        <div class="row" style="margin-top:11px"><button class="btn sm" id="cfgConnBtn">リンクを貼ってつなぐ</button></div>
+        <p class="note" style="margin-top:10px">LINEに届いている<b>店長からのリンクを長押し →「コピー」</b>して、
+          上のボタンから貼りつけてください。<br>一度つなげば、次からは何もしなくて大丈夫です。</p>
+      </div></div>
+    </section>
+
     <section class="view" id="v-ai" data-off>
       <div class="card"><div class="card-b">
         <div class="soon">
@@ -378,15 +397,6 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
   </div>
 </div></div>
 
-<div class="sheet" id="nameSheet" hidden><div class="sheet-in" role="dialog" aria-modal="true" aria-label="名前">
-  <div class="sheet-h"><h2>名前</h2><button class="btn sm ghost" id="nameClose" style="margin-left:auto">閉じる</button></div>
-  <div class="sec">
-    <div class="lbl" style="margin-bottom:6px">店長に分かる名前を入れてください</div>
-    <input type="text" id="nameIn" placeholder="例）田中" style="width:100%" autocomplete="name">
-    <p class="note">次からは自動で入ります。この端末にだけ保存されます。</p>
-    <div class="row" style="margin-top:12px"><button class="btn primary" id="nameSave">保存</button></div>
-  </div>
-</div></div>
 
 <!-- 時間指定 -->
 <div class="sheet" id="timeSheet" hidden><div class="sheet-in" role="dialog" aria-modal="true" aria-label="時間指定">
@@ -450,12 +460,12 @@ function applyConn(text){
 })();
 function connOn(){ return !!(window.Sync&&Sync.isOn()) }
 /* 入口の画面。開くとまずここが出て、押した画面だけを出す */
-var namePrompted=false;
 document.body.dataset.sub="req";
 var SCREENS=[
   {k:"shift",  ic:"🗓️", nm:"シフト",     ds:"希望を出す・決まったシフトを見る"},
   {k:"report", ic:"📝", nm:"店長へ報告", ds:"気づいたことを店長に伝える"},
-  {k:"ai",     ic:"💬", nm:"AI店長",     ds:"困ったときに相談する"}
+  {k:"ai",     ic:"💬", nm:"AI店長",     ds:"困ったときに相談する"},
+  {k:"cfg",    ic:"⚙️", nm:"設定",       ds:"名前・店長とのつながり"}
 ];
 $("#grid").innerHTML=SCREENS.map(function(t){
   return '<button class="tile" data-go="'+t.k+'">'+
@@ -481,25 +491,23 @@ function showScreen(k){
   SCREENS.forEach(function(x){
     document.getElementById("v-"+x.k).toggleAttribute("data-off",x.k!==k);
   });
+  if(k==="cfg") renderCfg();
   document.body.dataset.screen=k;
   $("#scTitle").textContent=(k==="shift")?"シフト希望":t.nm;
   $("#home").hidden=true; $("#app").hidden=false;
   window.scrollTo({top:0});
   fitToast();
   if(k==="report"){ renderReports(); pullReplies() }
-  if(k==="shift"){
-    if(window.fitCellNames) fitCellNames();
-    /* 名前の入力は、シフトの画面に入ったときだけ出す。
-       入口の上に出ると、何の画面か分からないままになってしまうため。 */
-    if(!name&&!namePrompted){ namePrompted=true; setTimeout(openName,400) }
-  }
+  if(k==="shift"){ if(window.fitCellNames) fitCellNames() }
 }
 $("#grid").addEventListener("click",function(e){
   var b=e.target.closest("[data-go]"); if(!b) return;
   showScreen(b.dataset.go);
 });
 $("#toHome").addEventListener("click",showHome);
-showHome();
+/* まだ名前を入れていない人には、最初に設定を出す。
+   名前が無いと希望も報告も送れないため。 */
+if(!name) showScreen("cfg"); else showHome();
 /* 下のバーの高さを測っておく（お知らせがボタンに重ならないように） */
 function fitToast(){
   var el=document.querySelector(".palette");
@@ -722,12 +730,24 @@ $("#nextM").addEventListener("click",function(){ view.setMonth(view.getMonth()+1
 $("#note").addEventListener("input",function(){ cur().note=this.value; save() });
 
 /* 名前 */
-function openName(){ $("#nameIn").value=name; $("#nameSheet").hidden=false; setTimeout(function(){$("#nameIn").focus()},50) }
-$("#openName").addEventListener("click",openName);
-$("#nameClose").addEventListener("click",function(){ $("#nameSheet").hidden=true });
-$("#nameSave").addEventListener("click",function(){
-  name=$("#nameIn").value.trim(); set(K_NAME,name); $("#nameSheet").hidden=true; renderHead(); renderCal();
+/* 名前は入口の「設定」で入れてもらう。前は小さなシートだったが、
+   どこで直すのか分かりにくかったので1か所にまとめた。 */
+function openName(){ showScreen("cfg"); setTimeout(function(){ $("#cfgName").focus() },80) }
+function renderCfg(){
+  $("#cfgName").value=name;
+  $("#cfgConn").textContent=connOn()?"つながっています":"まだつながっていません";
+  $("#cfgConn").style.color=connOn()?"var(--ok)":"var(--warn)";
+  $("#cfgConnBtn").textContent=connOn()?"つなぎ直す":"リンクを貼ってつなぐ";
+}
+$("#cfgConnBtn").addEventListener("click",function(){ $("#connBtn").click() });
+$("#cfgNameSave").addEventListener("click",function(){
+  var v=$("#cfgName").value.trim();
+  if(!v){ toast("名前を入れてください"); $("#cfgName").focus(); return }
+  name=v; set(K_NAME,name);
+  renderHead(); renderCal(); renderSummary(); renderReports();
+  toast("「"+name+"」で送ります");
 });
+$("#cfgName").addEventListener("keydown",function(e){ if(e.key==="Enter") $("#cfgNameSave").click() });
 
 /* 時間指定 */
 function openTime(day){
@@ -1072,7 +1092,7 @@ $("#connBtn").addEventListener("click",function(){
 $("#connClose").addEventListener("click",function(){ $("#connSheet").hidden=true });
 $("#connSave").addEventListener("click",function(){
   if(!applyConn($("#connIn").value)){ toast("リンクが読み取れませんでした。もう一度コピーして貼ってください"); return }
-  $("#connSheet").hidden=true; renderHead(); loadPub(); renderReports();
+  $("#connSheet").hidden=true; renderHead(); loadPub(); renderReports(); renderCfg();
   toast("つながりました。これで送れます");
 });
 /* 仮のシフトを見て「やっぱりこの日は…」というとき */
