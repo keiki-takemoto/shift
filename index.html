@@ -67,6 +67,15 @@ main{flex:1;width:100%;max-width:760px;margin:0 auto;padding:14px 16px 190px}
   border:1px solid var(--line-2);border-radius:10px;padding:11px 12px;font-family:inherit;line-height:1.7}
 .fld textarea{min-height:120px;resize:vertical}
 #repSend{width:100%;padding:13px}
+/* 報告の種類を選ぶ丸いボタン */
+.cats{display:flex;flex-wrap:wrap;gap:8px}
+.cats button{border:1px solid var(--line-2);background:var(--surface);color:var(--ink-2);border-radius:999px;
+  padding:9px 13px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;line-height:1.2}
+.cats button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent);color:#fff}
+/* 送ったものに付く種類の札 */
+.cbadge{display:inline-block;font-size:11.5px;font-weight:700;color:var(--ink-2);
+  background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:3px 9px;margin-bottom:7px}
+
 .rep{border:1px solid var(--line);border-radius:12px;padding:12px 13px;background:var(--surface)}
 .rep+.rep{margin-top:10px}
 .rep .rt{font-size:15px;font-weight:700;line-height:1.5}
@@ -309,6 +318,10 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
       </div></div>
 
       <div class="card"><div class="card-b">
+        <div class="fld">
+          <label>種類</label>
+          <div class="cats" id="repCats"></div>
+        </div>
         <div class="fld">
           <label for="repTitle">題名</label>
           <input type="text" id="repTitle" placeholder="例）レジのテープが残り少ないです" autocomplete="off">
@@ -1082,13 +1095,31 @@ $("#v-status").addEventListener("click",function(e){
    合言葉はみんな同じなので、名前で引く作りにすると人の報告まで読めてしまうため。 */
 var myReps=get(K_REP,[])||[];
 function repId(){ return "r"+Date.now().toString(36)+Math.random().toString(36).slice(2,7) }
+
+/* 報告の種類。店長の画面でこの種類ごとに分けて読めるようにしてある。 */
+var repCat="";
+function renderCats(){
+  var list=(window.Sync&&Sync.CATS)||[];
+  $("#repCats").innerHTML=list.map(function(c){
+    return '<button type="button" data-cat="'+esc(c.k)+'" aria-pressed="'+(repCat===c.k)+'">'+
+      esc(c.ic+" "+c.nm)+'</button>';
+  }).join("");
+}
+$("#repCats").addEventListener("click",function(e){
+  var b=e.target.closest("[data-cat]"); if(!b) return;
+  repCat=(repCat===b.dataset.cat)?"":b.dataset.cat;   // もう一度押すと外れる
+  renderCats();
+});
+renderCats();
 function repCard(r){
   var ans=r.replied
     ? '<div class="ans"><div class="who">店長からの返事'+(r.replyAt?"　"+esc(r.replyAt):"")+'</div>'+
       '<div class="tx">'+esc(r.reply||"")+'</div></div>'
     /* 返事がまだなら、取り消せる。店長が返事を書いたあとは取り消せない */
     : '<div class="ract"><button class="btn sm ghost" data-cancel="'+esc(r.id)+'">送信を取り消す</button></div>';
+  var c=window.Sync?Sync.catOf(r.cat||""):null;
   return '<div class="rep'+((r.replied&&!r.seen)?" new":"")+'">'+
+    (c?'<div class="cbadge">'+esc(c.ic+" "+c.nm)+'</div>':"")+
     '<div class="rt">'+esc(r.title||"（題名なし）")+'</div>'+
     '<div class="rm">'+esc(r.at||"")+'</div>'+
     '<div class="rb">'+esc(r.body||"")+'</div>'+ans+'</div>';
@@ -1141,6 +1172,7 @@ async function pullReplies(){
       var x=by[r.id]; if(!x) return;
       if(x.replied&&!r.replied) newly++;
       r.replied=!!x.replied; r.reply=x.reply||""; r.replyAt=x.replyAt||"";
+      if(!r.cat&&x.cat) r.cat=x.cat;
     });
     set(K_REP,myReps); renderReports();
     if(newly) toast("店長から返事が届いています");
@@ -1148,16 +1180,18 @@ async function pullReplies(){
 }
 $("#repSend").addEventListener("click",async function(){
   var t=$("#repTitle").value.trim(), b=$("#repBody").value.trim();
+  if(!repCat){ toast("種類を選んでください"); $("#repCats").scrollIntoView({block:"center"}); return }
   if(!b){ toast("内容を入れてください"); $("#repBody").focus(); return }
   if(!connOn()){ toast("まだ店長とつながっていません"); return }
   if(!name){ toast("先に名前を入れてください"); openName(); return }
   var btn=this; btn.disabled=true; btn.textContent="送っています…";
-  var r={id:repId(),title:t,body:b};
+  var r={id:repId(),title:t,body:b,cat:repCat};
   try{
-    var res=await Sync.reportSubmit({id:r.id,name:name,title:t,body:b});
+    var res=await Sync.reportSubmit({id:r.id,name:name,title:t,body:b,cat:repCat});
     r.at=res.at||""; r.replied=false; r.reply=""; r.seen=true;
     myReps.unshift(r); set(K_REP,myReps);
     $("#repTitle").value=""; $("#repBody").value="";
+    repCat=""; renderCats();
     renderReports();
     toast("店長に送りました");
   }catch(e){ toast((e&&e.message)||"送れませんでした") }
