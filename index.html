@@ -92,6 +92,24 @@ main{flex:1;width:100%;max-width:760px;margin:0 auto;padding:14px 16px 190px}
 .st .big{font-size:30px;font-weight:800;font-family:var(--mono);line-height:1.1;color:var(--ink)}
 .st .unit{font-size:14px;font-weight:700;color:var(--ink-2);padding-bottom:3px}
 .st .sub{width:100%;font-size:12px;color:var(--ink-3);margin-top:7px;line-height:1.8}
+/* 販売力 */
+.pw{display:flex;gap:10px;flex-wrap:wrap}
+.pw .seg2{flex:1;min-width:92px;background:var(--surface-2);border:1px solid var(--line);
+  border-radius:11px;padding:11px 12px}
+.pw .seg2 .k{font-size:11.5px;color:var(--ink-3)}
+.pw .seg2 .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:24px;font-weight:800;
+  line-height:1.35;color:var(--ink)}
+.pw .seg2.rate .v{color:var(--ok)}
+.pwtabs{display:flex;gap:6px;background:var(--surface-2);border-radius:10px;padding:3px;margin-bottom:11px}
+.pwtabs button{flex:1;border:none;background:transparent;border-radius:8px;padding:8px 4px;cursor:pointer;
+  font-family:inherit;font-size:13px;font-weight:700;color:var(--ink-2)}
+.pwtabs button[aria-pressed="true"]{background:var(--surface);color:var(--accent);box-shadow:var(--shadow)}
+.pwdays{margin-top:12px;width:100%;border-collapse:collapse;font-size:13px}
+.pwdays th,.pwdays td{padding:7px 5px;border-bottom:1px solid var(--line);text-align:left}
+.pwdays th{font-size:11px;color:var(--ink-3);font-weight:600}
+.pwdays td.n,.pwdays th.n{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+.pwdays td.r{font-family:var(--mono);text-align:right;font-weight:800;color:var(--ok)}
+
 .stnone{font-size:13.5px;color:var(--ink-2);line-height:1.9}
 .stnone b{color:var(--warn)}
 .cardh{font-size:12px;letter-spacing:.07em;color:var(--ink-3);font-weight:600;margin-bottom:9px}
@@ -439,7 +457,7 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
 var F=window.ShiftFormat;
 var $=function(s){return document.querySelector(s)};
 var K_NAME="shift.name.v1", K_REQ="shift.req.v1", K_SYNC="shift.sync.v1", K_SENT="shift.sent.v1",
-    K_MERGED="shift.merged.v1", K_REP="shift.reports.v1",
+    K_MERGED="shift.merged.v1", K_REP="shift.reports.v1", K_POWER="shift.power.v1",
     K_JOIN="shift.join.v1", K_WAGE="shift.wage.v1";
 var DOWN=["日","月","火","水","木","金","土"];
 function get(k,f){try{var v=localStorage.getItem(k);return v==null?f:JSON.parse(v)}catch(e){return f}}
@@ -1062,9 +1080,93 @@ function renderStatus(skipPull){
       '<span class="sub">'+esc(joinDay.replace(/-/g,"/"))+' から '+yen(t.days)+'日目です。</span></div>';
   }
   /* --- 販売力 --- */
-  $("#stSales").innerHTML='<div class="stnone">レジができたら、売った数や目標の達成ぐあいがここに出ます。<br>'+
-    'いま用意しているところです。</div>';
-  if(!skipPull) pullMe();
+  renderPower();
+  if(!skipPull){ pullMe(); pullPower() }
+}
+
+/* ---------- 販売力 ---------- */
+/* 自分が担当だった時間の「来店」と「会計」。店長側で数えているものを、
+   自分のぶんだけ受け取る。金額は受け取らない。 */
+var powerSpan="month";
+var power=get(K_POWER,null);
+function ymd(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()) }
+function powerRange(){
+  var now=new Date();
+  if(powerSpan==="today") return {from:ymd(now), to:ymd(now)};
+  if(powerSpan==="week"){ var a=new Date(now); a.setDate(a.getDate()-6); return {from:ymd(a), to:ymd(now)} }
+  return {from:ymd(new Date(now.getFullYear(),now.getMonth(),1)), to:ymd(now)};
+}
+function renderPower(){
+  var el=$("#stSales");
+  var tabs='<div class="pwtabs" id="pwTabs">'+
+    [["today","今日"],["week","この7日"],["month","今月"]].map(function(x){
+      return '<button type="button" data-p="'+x[0]+'" aria-pressed="'+(powerSpan===x[0])+'">'+x[1]+'</button>';
+    }).join("")+'</div>';
+
+  if(!connOn()){
+    el.innerHTML=tabs+'<div class="stnone">まだ店長とつながっていません。</div>'; return;
+  }
+  if(power&&power.personal===false){
+    el.innerHTML=tabs+'<div class="stnone"><b>このリンクでは出せません。</b><br>'+
+      '販売力は<b>自分だけのリンク</b>からでないと見られないようにしてあります。<br>'+
+      '店長に「ステータス用のリンクがほしい」と伝えてください。</div>';
+    return;
+  }
+  if(!power){ el.innerHTML=tabs+'<div class="stnone">読み込んでいます…</div>'; return }
+
+  var r=powerRange();
+  var days=(power.days||[]).filter(function(d){ return d.day>=r.from&&d.day<=r.to });
+  var vis=0, buy=0, qty=0;
+  days.forEach(function(d){ vis+=d.vis||0; buy+=d.buy||0; qty+=d.qty||0 });
+  var rate=vis?Math.round(buy/vis*100):null;
+
+  var h=tabs+'<div class="pw">'+
+    '<div class="seg2"><div class="k">来店</div><div class="v">'+vis+'</div></div>'+
+    '<div class="seg2"><div class="k">お買い上げ</div><div class="v">'+buy+'</div></div>'+
+    '<div class="seg2 rate"><div class="k">販売力</div><div class="v">'+
+      (rate===null?"—":rate+"%")+'</div></div>'+
+    '</div>';
+
+  if(!vis&&!buy){
+    h+='<div class="stnone" style="margin-top:11px">この期間はまだ記録がありません。<br>'+
+       'お店の「来店」を数えて、レジを打つと出ます。</div>';
+  }else{
+    h+='<div class="stnone" style="margin-top:11px">'+
+       '自分が<b>担当になっていた時間</b>の数です。点数は '+qty+'点。<br>'+
+       '販売力＝お買い上げ ÷ 来店。'+
+       (power.at?'<br>'+esc(power.at)+' に確認':'')+'</div>';
+    var show=days.slice().reverse().slice(0,14);
+    if(show.length>1){
+      h+='<table class="pwdays"><thead><tr><th>日</th><th class="n">来店</th>'+
+         '<th class="n">お買い上げ</th><th class="n">販売力</th></tr></thead><tbody>'+
+         show.map(function(d){
+           var rr=d.vis?Math.round(d.buy/d.vis*100)+"%":"—";
+           return '<tr><td>'+esc(d.day.slice(5).replace("-","/"))+'</td>'+
+             '<td class="n">'+(d.vis||0)+'</td><td class="n">'+(d.buy||0)+'</td>'+
+             '<td class="r">'+rr+'</td></tr>';
+         }).join("")+'</tbody></table>';
+    }
+  }
+  el.innerHTML=h;
+}
+$("#stSales").addEventListener("click",function(e){
+  var b=e.target.closest("[data-p]"); if(!b) return;
+  powerSpan=b.dataset.p; renderPower();
+});
+async function pullPower(){
+  if(!connOn()) return;
+  try{
+    /* 今月のはじめから今日まで、まとめて受け取っておく（切り替えは手元で済ませる） */
+    var now=new Date();
+    var from=ymd(new Date(now.getFullYear(),now.getMonth(),1));
+    var a=new Date(now); a.setDate(a.getDate()-6);
+    if(ymd(a)<from) from=ymd(a);
+    var r=await Sync.mePower(from,ymd(now));
+    power={personal:(r.personal!==false), days:r.days||[],
+      at:new Date().toLocaleString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})};
+    set(K_POWER,power);
+    if(document.body.dataset.screen==="status") renderPower();
+  }catch(e){}
 }
 /* 自分のリンクに入っている合言葉から、店長が本人を見分ける。
    名前も時給も、店長が登録したものをそのまま受け取る。 */
