@@ -110,6 +110,25 @@ main{flex:1;width:100%;max-width:760px;margin:0 auto;padding:14px 16px 190px}
 .pwdays td.n,.pwdays th.n{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
 .pwdays td.r{font-family:var(--mono);text-align:right;font-weight:800;color:var(--ok)}
 
+/* ランキング */
+.rk+.rk{margin-top:16px;padding-top:15px;border-top:1px solid var(--line)}
+.rk .h{display:flex;align-items:baseline;gap:8px;margin-bottom:9px}
+.rk .h .t{font-size:13.5px;font-weight:800}
+.rk .h .d{font-size:11px;color:var(--ink-3)}
+.rkrow{display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px solid var(--line)}
+.rkrow:last-child{border-bottom:none}
+.rkrow .no{width:26px;height:26px;border-radius:999px;background:var(--surface-2);color:var(--ink-2);
+  font-family:var(--mono);font-size:12.5px;font-weight:800;display:flex;align-items:center;
+  justify-content:center;flex:0 0 auto}
+.rkrow.top1 .no{background:#C9A227;color:#fff}
+.rkrow.top2 .no{background:#9AA0A6;color:#fff}
+.rkrow.top3 .no{background:#B07A4A;color:#fff}
+.rkrow .nm{flex:1;font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rkrow.me{background:var(--accent-2);border-radius:8px;padding-left:6px;padding-right:6px}
+.rkrow.me .nm::after{content:"　あなた";font-size:11px;color:var(--ink-3);font-weight:600}
+.rkrow .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:15px;font-weight:800}
+.rkrow .s{font-size:11px;color:var(--ink-3);font-family:var(--mono);min-width:62px;text-align:right}
+
 .stnone{font-size:13.5px;color:var(--ink-2);line-height:1.9}
 .stnone b{color:var(--warn)}
 .cardh{font-size:12px;letter-spacing:.07em;color:var(--ink-3);font-weight:600;margin-bottom:9px}
@@ -271,6 +290,10 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
       <div class="card"><div class="card-b">
         <div class="cardh">販売力</div>
         <div id="stSales"></div>
+      </div></div>
+      <div class="card"><div class="card-b">
+        <div class="cardh">ランキング</div>
+        <div id="stRank"></div>
       </div></div>
     </section>
 
@@ -458,6 +481,7 @@ var F=window.ShiftFormat;
 var $=function(s){return document.querySelector(s)};
 var K_NAME="shift.name.v1", K_REQ="shift.req.v1", K_SYNC="shift.sync.v1", K_SENT="shift.sent.v1",
     K_MERGED="shift.merged.v1", K_REP="shift.reports.v1", K_POWER="shift.power.v1",
+    K_BOARD="shift.board.v1",
     K_JOIN="shift.join.v1", K_WAGE="shift.wage.v1";
 var DOWN=["日","月","火","水","木","金","土"];
 function get(k,f){try{var v=localStorage.getItem(k);return v==null?f:JSON.parse(v)}catch(e){return f}}
@@ -1081,7 +1105,8 @@ function renderStatus(skipPull){
   }
   /* --- 販売力 --- */
   renderPower();
-  if(!skipPull){ pullMe(); pullPower() }
+  renderRank();
+  if(!skipPull){ pullMe(); pullPower(); pullBoard() }
 }
 
 /* ---------- 販売力 ---------- */
@@ -1151,8 +1176,104 @@ function renderPower(){
 }
 $("#stSales").addEventListener("click",function(e){
   var b=e.target.closest("[data-p]"); if(!b) return;
-  powerSpan=b.dataset.p; renderPower();
+  powerSpan=b.dataset.p; renderPower(); renderRank(); pullBoard();
 });
+/* ---------- ランキング ---------- */
+/* 全員ぶんの件数だけを受け取って、順位は手元でつける。金額は届かない。 */
+var board=get(K_BOARD,null);
+function rate(buy,vis){ return vis?buy/vis:null }
+/* 1位からの並びを作る。val が null の人は「—」で下に置く */
+function rankList(rows,val,fmt){
+  var a=rows.map(function(r){ return {name:r.name, v:val(r), sub:fmt?fmt(r):""} });
+  a.sort(function(x,y){
+    if(x.v===null&&y.v===null) return x.name.localeCompare(y.name,"ja");
+    if(x.v===null) return 1;
+    if(y.v===null) return -1;
+    return y.v-x.v || x.name.localeCompare(y.name,"ja");
+  });
+  /* 同じ数字なら同じ順位にする */
+  var pos=0, prev=null;
+  a.forEach(function(x,i){ if(prev===null||x.v!==prev){ pos=i+1; prev=x.v } x.pos=(x.v===null?null:pos) });
+  return a;
+}
+function rkBlock(title,desc,list,unit){
+  var me=board&&board.me;
+  return '<div class="rk"><div class="h"><span class="t">'+esc(title)+'</span>'+
+    '<span class="d">'+esc(desc)+'</span></div>'+
+    list.map(function(x){
+      var cls=(x.pos===1?"top1":x.pos===2?"top2":x.pos===3?"top3":"")+((x.name===me)?" me":"");
+      var v=(x.v===null)?(unit===""?"":"—"):(unit==="%"?Math.round(x.v*100)+"%":x.v+unit);
+      return '<div class="rkrow '+cls+'"><span class="no">'+(x.pos==null?"—":x.pos)+'</span>'+
+        '<span class="nm">'+esc(x.name)+'</span>'+
+        '<span class="s">'+esc(x.sub)+'</span>'+
+        '<span class="v">'+v+'</span></div>';
+    }).join("")+'</div>';
+}
+function renderRank(){
+  var el=$("#stRank");
+  if(!connOn()){ el.innerHTML='<div class="stnone">まだ店長とつながっていません。</div>'; return }
+  if(board&&board.personal===false){
+    el.innerHTML='<div class="stnone"><b>このリンクでは出せません。</b><br>'+
+      '店長に「ステータス用のリンクがほしい」と伝えてください。</div>';
+    return;
+  }
+  if(!board){ el.innerHTML='<div class="stnone">読み込んでいます…</div>'; return }
+  var rows=board.rows||[];
+  if(!rows.length){
+    el.innerHTML='<div class="stnone">まだ記録がありません。<br>'+
+      'お店で「来店」を数えて、レジを打つと出ます。</div>';
+    return;
+  }
+
+  /* 総合力＝販売率・販売数・高単価販売数の3つの順位を足して、小さい人が上 */
+  var r1=rankList(rows,function(r){ return rate(r.buy,r.vis) });
+  var r2=rankList(rows,function(r){ return r.qty });
+  var r3=rankList(rows,function(r){ return r.hiqty });
+  var pos={};
+  [r1,r2,r3].forEach(function(l){
+    l.forEach(function(x){ pos[x.name]=(pos[x.name]||0)+(x.pos||rows.length+1) });
+  });
+  var total=rankList(rows,function(r){ return -(pos[r.name]||0) },function(r){
+    return (pos[r.name]||0)+"点";
+  });
+  /* 総合力は点数そのものを出さず、順位だけ見せる */
+  total.forEach(function(x){ x.v=(x.v===null?null:0) });
+
+  var h=rkBlock("総合力","販売率・販売数・高単価の合計",total.map(function(x){
+        return {name:x.name, v:null, sub:x.sub, pos:x.pos};
+      }),"")+
+    rkBlock("販売率","お買い上げ ÷ 来店",
+      rankList(rows,function(r){ return rate(r.buy,r.vis) },
+        function(r){ return r.buy+"/"+r.vis }),"%")+
+    rkBlock("販売数","売れた点数",
+      rankList(rows,function(r){ return r.qty },
+        function(r){ return r.buy+"件" }),"点")+
+    rkBlock("高単価販売数",(board.hi?board.hi.toLocaleString("ja-JP"):"3,000")+"円以上の点数",
+      rankList(rows,function(r){ return r.hiqty }),"点");
+
+  [["west","欧米"],["asia","アジア"],["jp","日本"]].forEach(function(a){
+    h+=rkBlock(a[1]+"の方への販売力","お買い上げ ÷ 来店",
+      rankList(rows,function(r){ return rate((r.buyA||{})[a[0]]||0,(r.visA||{})[a[0]]||0) },
+        function(r){ return ((r.buyA||{})[a[0]]||0)+"/"+((r.visA||{})[a[0]]||0) }),"%");
+  });
+
+  h+='<div class="stnone" style="margin-top:14px">'+
+     (powerSpan==="today"?"今日":powerSpan==="week"?"この7日":"今月")+'の数です。'+
+     '上の<b>販売力</b>の切り替えに合わせて変わります。<br>'+
+     '同じ数字のときは同じ順位になります。</div>';
+  el.innerHTML=h;
+}
+async function pullBoard(){
+  if(!connOn()) return;
+  try{
+    var r0=powerRange();
+    var r=await Sync.powerBoard(r0.from,r0.to);
+    board={personal:(r.personal!==false), me:r.me||"", hi:r.hi||3000, rows:r.rows||[]};
+    set(K_BOARD,board);
+    if(document.body.dataset.screen==="status") renderRank();
+  }catch(e){}
+}
+
 async function pullPower(){
   if(!connOn()) return;
   try{
