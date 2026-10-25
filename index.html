@@ -93,6 +93,13 @@ main{flex:1;width:100%;max-width:760px;margin:0 auto;padding:14px 16px 190px}
 .spanbar button{flex:1;border:none;background:transparent;border-radius:8px;padding:9px 4px;cursor:pointer;
   font-family:inherit;font-size:13.5px;font-weight:700;color:var(--ink-2)}
 .spanbar button[aria-pressed="true"]{background:var(--surface);color:var(--accent);box-shadow:var(--shadow)}
+.spanpick{display:flex;gap:8px;margin:-4px 0 12px}
+.spanpick label{flex:1;min-width:0;display:flex;align-items:center;gap:7px;background:var(--surface);
+  border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:12px;color:var(--ink-3);
+  font-weight:600}
+.spanpick input{flex:1;min-width:0;width:100%;border:none;background:transparent;font-family:var(--mono);
+  font-size:13.5px;color:var(--ink);padding:0}
+.spanpick input::-webkit-date-and-time-value{text-align:left}
 
 .st{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
 .st .big{font-size:30px;font-weight:800;font-family:var(--mono);line-height:1.1;color:var(--ink)}
@@ -341,8 +348,12 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
     <section class="view" id="v-status" data-off>
       <div class="spanbar" id="pwTabs">
         <button type="button" data-p="today" aria-pressed="false">今日</button>
-        <button type="button" data-p="week" aria-pressed="false">この7日</button>
         <button type="button" data-p="month" aria-pressed="true">今月</button>
+        <button type="button" data-p="custom" aria-pressed="false">期間指定</button>
+      </div>
+      <div class="spanpick" id="spanPick" hidden>
+        <label>から<input type="date" id="spFrom"></label>
+        <label>まで<input type="date" id="spTo"></label>
       </div>
       <div class="card hero" id="stHero"><div class="card-b"></div></div>
       <div class="card"><div class="card-b">
@@ -546,7 +557,7 @@ var F=window.ShiftFormat;
 var $=function(s){return document.querySelector(s)};
 var K_NAME="shift.name.v1", K_REQ="shift.req.v1", K_SYNC="shift.sync.v1", K_SENT="shift.sent.v1",
     K_MERGED="shift.merged.v1", K_REP="shift.reports.v1", K_POWER="shift.power.v1",
-    K_BOARD="shift.board.v1",
+    K_BOARD="shift.board.v1", K_SPAN="shift.span.v1",
     K_JOIN="shift.join.v1", K_WAGE="shift.wage.v1";
 var DOWN=["日","月","火","水","木","金","土"];
 function get(k,f){try{var v=localStorage.getItem(k);return v==null?f:JSON.parse(v)}catch(e){return f}}
@@ -1138,6 +1149,7 @@ function yearsText(d){
 function yen(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,",") }
 
 function renderStatus(skipPull){
+  renderSpan();
   renderHero();
   renderPower();
   renderRank();
@@ -1148,29 +1160,49 @@ function renderStatus(skipPull){
 /* ---------- 期間 ---------- */
 /* 時給は店長が「設定 → スタッフ」で入れたもの。置き場所から自分のぶんだけ受け取る。
    一度受け取ったら手元に覚えておき、電波が無くても出せるようにする。 */
-var powerSpan="month";
 var power=get(K_POWER,null);
 function ymd(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()) }
+/* 選んだ期間と、期間指定の「から・まで」。開き直しても覚えておく */
+var cust=get(K_SPAN,null);
+var powerSpan=(cust&&cust.span==="today")?"today":(cust&&cust.span==="custom")?"custom":"month";
+function custRange(){
+  var now=new Date();
+  var f=(cust&&cust.from)||ymd(new Date(now.getFullYear(),now.getMonth(),1));
+  var t=(cust&&cust.to)||ymd(now);
+  if(f>t){ var x=f; f=t; t=x }
+  return {from:f,to:t};
+}
 function powerRange(){
   var now=new Date();
   if(powerSpan==="today") return {from:ymd(now), to:ymd(now)};
-  if(powerSpan==="week"){ var a=new Date(now); a.setDate(a.getDate()-6); return {from:ymd(a), to:ymd(now)} }
+  if(powerSpan==="custom") return custRange();
   return {from:ymd(new Date(now.getFullYear(),now.getMonth(),1)), to:ymd(now)};
 }
+/* 日にちの差（両はし入り） */
+function dayDiff(a,b){ return Math.round((new Date(b+"T00:00:00")-new Date(a+"T00:00:00"))/86400000)+1 }
+function shiftDay(d,n){ var x=new Date(d+"T00:00:00"); x.setDate(x.getDate()+n); return ymd(x) }
 /* ひとつ前の同じ長さの期間。「先月より上がった」を出すために使う */
 function prevRange(){
   var now=new Date();
   if(powerSpan==="today"){ var a=new Date(now); a.setDate(a.getDate()-1); return {from:ymd(a),to:ymd(a)} }
-  if(powerSpan==="week"){
-    var b=new Date(now); b.setDate(b.getDate()-13);
-    var c=new Date(now); c.setDate(c.getDate()-7);
-    return {from:ymd(b),to:ymd(c)};
+  if(powerSpan==="custom"){
+    var r=custRange(), n=dayDiff(r.from,r.to);
+    return {from:shiftDay(r.from,-n), to:shiftDay(r.from,-1)};
   }
   return {from:ymd(new Date(now.getFullYear(),now.getMonth()-1,1)),
           to:ymd(new Date(now.getFullYear(),now.getMonth(),0))};
 }
-function spanName(){ return powerSpan==="today"?"今日":powerSpan==="week"?"この7日":"今月" }
-function prevName(){ return powerSpan==="today"?"前の日":powerSpan==="week"?"その前の7日":"先月" }
+function mdText(d){ return String(d).slice(5).replace("-","/").replace(/^0/,"").replace("/0","/") }
+function spanName(){
+  if(powerSpan==="today") return "今日";
+  if(powerSpan==="custom"){ var r=custRange(); return mdText(r.from)+"〜"+mdText(r.to) }
+  return "今月";
+}
+function prevName(){
+  if(powerSpan==="today") return "前の日";
+  if(powerSpan==="custom"){ var r=custRange(); return "その前の"+dayDiff(r.from,r.to)+"日" }
+  return "先月";
+}
 function sumDays(r){
   var o={vis:0,buy:0,qty:0};
   ((power&&power.days)||[]).forEach(function(d){
@@ -1322,7 +1354,10 @@ function chartHtml(days){
   var top=Math.max(.4,Math.ceil(mx*10)/10); if(top>1) top=1;
   var sv=0,sb=0; days.forEach(function(d){ sv+=d.vis; sb+=d.buy });
   var avg=sv?sb/sv:0;
-  var bw=iw/n, w=Math.max(4,Math.min(26,bw*.62));
+  var bw=iw/n, w=Math.max(1.6,Math.min(26,bw*.62));
+  /* 月をまたぐときは「8/11」、同じ月なら日にちだけ */
+  var many=days[0].day.slice(0,7)!==days[n-1].day.slice(0,7);
+  var step=Math.ceil(n/(many?10:14));
   var td=ymd(new Date()), g="";
 
   [0,top/2,top].forEach(function(v){
@@ -1339,8 +1374,8 @@ function chartHtml(days){
        '" height="'+hh.toFixed(1)+'" rx="3"/>';
     if(n<=10) g+='<text class="val" x="'+(x+w/2).toFixed(1)+'" y="'+(y-3.5).toFixed(1)+
        '" text-anchor="middle">'+Math.round(v*100)+'</text>';
-    if(n<=16||i%2===0||i===n-1) g+='<text x="'+(x+w/2).toFixed(1)+'" y="'+(H-5)+
-       '" text-anchor="middle">'+d.day.slice(8).replace(/^0/,"")+'</text>';
+    if(i%step===0||i===n-1) g+='<text x="'+(x+w/2).toFixed(1)+'" y="'+(H-5)+
+       '" text-anchor="middle">'+(many?mdText(d.day):d.day.slice(8).replace(/^0/,""))+'</text>';
   });
   var ay=pt+ih-ih*(avg/top);
   g+='<line class="avg" x1="'+pl+'" y1="'+ay.toFixed(1)+'" x2="'+(W-pr)+'" y2="'+ay.toFixed(1)+
@@ -1482,13 +1517,31 @@ function renderMine(){
 }
 
 /* ---------- 切り替え ---------- */
-$("#pwTabs").addEventListener("click",function(e){
-  var b=e.target.closest("[data-p]"); if(!b) return;
-  powerSpan=b.dataset.p;
+function renderSpan(){
   Array.prototype.forEach.call($("#pwTabs").querySelectorAll("button"),function(x){
     x.setAttribute("aria-pressed",String(x.dataset.p===powerSpan));
   });
-  renderHero(); renderPower(); renderRank(); pullBoard();
+  var r=custRange();
+  $("#spFrom").value=r.from; $("#spTo").value=r.to;
+  $("#spanPick").hidden=(powerSpan!=="custom");
+}
+function spanChanged(){
+  renderSpan(); renderHero(); renderPower(); renderRank();
+  pullPower(); pullBoard();
+}
+function saveSpan(){
+  var r=custRange();
+  cust={from:r.from, to:r.to, span:powerSpan};
+  set(K_SPAN,cust);
+}
+$("#pwTabs").addEventListener("click",function(e){
+  var b=e.target.closest("[data-p]"); if(!b) return;
+  powerSpan=b.dataset.p; saveSpan(); spanChanged();
+});
+$("#spanPick").addEventListener("change",function(){
+  var f=$("#spFrom").value||"", t=$("#spTo").value||"";
+  cust={from:f||custRange().from, to:t||custRange().to, span:powerSpan};
+  saveSpan(); spanChanged();
 });
 $("#stRank").addEventListener("click",function(e){
   var b=e.target.closest("[data-r]"); if(!b) return;
@@ -1509,12 +1562,17 @@ async function pullBoard(){
 async function pullPower(){
   if(!connOn()) return;
   try{
-    /* 先月のはじめから今日まで、まとめて受け取っておく（切り替えと「先月より」は手元で済ませる） */
+    /* 先月のはじめから今日まで、まとめて受け取っておく（切り替えと「先月より」は手元で済ませる）。
+       期間指定でもっと前や先を見ているときは、そこまで広げる */
     var now=new Date();
-    var from=ymd(new Date(now.getFullYear(),now.getMonth()-1,1));
+    var from=ymd(new Date(now.getFullYear(),now.getMonth()-1,1)), to=ymd(now);
     var a=new Date(now); a.setDate(a.getDate()-13);
     if(ymd(a)<from) from=ymd(a);
-    var r=await Sync.mePower(from,ymd(now));
+    var w=powerRange(), v=prevRange();
+    if(w.from<from) from=w.from;
+    if(v.from<from) from=v.from;
+    if(w.to>to) to=w.to;
+    var r=await Sync.mePower(from,to);
     power={personal:(r.personal!==false), days:r.days||[],
       at:new Date().toLocaleString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})};
     set(K_POWER,power);
