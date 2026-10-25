@@ -88,10 +88,42 @@ main{flex:1;width:100%;max-width:760px;margin:0 auto;padding:14px 16px 190px}
 .rep.new{border-color:var(--ok);box-shadow:inset 0 0 0 1px var(--ok)}
 
 /* ---- ステータス ---- */
+/* 期間の切り替え。この画面ぜんぶ（順位・グラフ・ランキング）がこれに合わせて変わる */
+.spanbar{display:flex;gap:6px;background:var(--surface-2);border-radius:11px;padding:4px;margin-bottom:12px}
+.spanbar button{flex:1;border:none;background:transparent;border-radius:8px;padding:9px 4px;cursor:pointer;
+  font-family:inherit;font-size:13.5px;font-weight:700;color:var(--ink-2)}
+.spanbar button[aria-pressed="true"]{background:var(--surface);color:var(--accent);box-shadow:var(--shadow)}
+
 .st{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
 .st .big{font-size:30px;font-weight:800;font-family:var(--mono);line-height:1.1;color:var(--ink)}
 .st .unit{font-size:14px;font-weight:700;color:var(--ink-2);padding-bottom:3px}
 .st .sub{width:100%;font-size:12px;color:var(--ink-3);margin-top:7px;line-height:1.8}
+
+/* いちばん上の「自分の位置」 */
+.card.hero{background:linear-gradient(152deg,var(--accent-2),var(--surface) 68%);border-color:var(--line-2)}
+.hrow{display:flex;align-items:center;gap:12px}
+.medal{font-size:33px;line-height:1;flex:0 0 auto}
+.hmain{flex:1;min-width:0}
+.hpos{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--ink-2);line-height:1.1}
+.hpos b{font-size:37px;font-weight:800;color:var(--ink);letter-spacing:-.02em}
+.hpos span{font-size:12px;color:var(--ink-3);font-weight:600}
+.hcap{font-size:11.5px;color:var(--ink-3);margin-top:5px}
+.hrate{text-align:right;flex:0 0 auto}
+.hrate .k{font-size:11px;color:var(--ink-3)}
+.hrate .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:29px;font-weight:800;
+  line-height:1.15;color:var(--ok)}
+.hrate .v small{font-size:15px;font-weight:700}
+.dlt{display:inline-block;margin-top:4px;font-size:11px;font-weight:700;font-family:var(--mono);
+  border-radius:999px;padding:2px 7px;background:var(--surface-2);color:var(--ink-3)}
+.dlt.up{background:var(--ok-bg);color:var(--ok)}
+.dlt.dn{background:var(--ng-bg);color:var(--ng)}
+.gauge{position:relative;height:10px;border-radius:999px;background:var(--surface-3);margin-top:15px}
+.gauge i{display:block;height:100%;border-radius:999px;background:var(--ok);min-width:3px}
+.gauge u{position:absolute;top:-2px;width:2px;height:14px;background:var(--ink-2);opacity:.65;border-radius:1px}
+.glab{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-3);margin-top:8px;
+  font-family:var(--mono)}
+.hmsg{margin-top:13px;font-size:13px;font-weight:700;color:var(--accent);line-height:1.6}
+
 /* 販売力 */
 .pw{display:flex;gap:10px;flex-wrap:wrap}
 .pw .seg2{flex:1;min-width:92px;background:var(--surface-2);border:1px solid var(--line);
@@ -100,22 +132,40 @@ main{flex:1;width:100%;max-width:760px;margin:0 auto;padding:14px 16px 190px}
 .pw .seg2 .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:24px;font-weight:800;
   line-height:1.35;color:var(--ink)}
 .pw .seg2.rate .v{color:var(--ok)}
-.pwtabs{display:flex;gap:6px;background:var(--surface-2);border-radius:10px;padding:3px;margin-bottom:11px}
-.pwtabs button{flex:1;border:none;background:transparent;border-radius:8px;padding:8px 4px;cursor:pointer;
-  font-family:inherit;font-size:13px;font-weight:700;color:var(--ink-2)}
-.pwtabs button[aria-pressed="true"]{background:var(--surface);color:var(--accent);box-shadow:var(--shadow)}
-.pwdays{margin-top:12px;width:100%;border-collapse:collapse;font-size:13px}
+.pwhd{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:17px 0 7px}
+.pwhd .t{font-size:13px;font-weight:800}
+.pwhd .d{font-size:11px;color:var(--ink-3);font-family:var(--mono)}
+.chart{width:100%;height:auto;display:block}
+.chart .bar{fill:var(--accent);opacity:.72}
+.chart .bar.best{fill:var(--ok);opacity:1}
+.chart .bar.today{stroke:var(--ink);stroke-width:1.2}
+.chart .grid{stroke:var(--line)}
+.chart .avg{stroke:var(--ink-2);stroke-dasharray:3 3;opacity:.75}
+.chart text{font-family:var(--mono);font-size:9px;fill:var(--ink-3)}
+.chart text.val{font-size:8.5px;fill:var(--ink-2);font-weight:700}
+.chart text.avgt{fill:var(--ink-2);font-weight:700}
+.pwdays{margin-top:10px;width:100%;border-collapse:collapse;font-size:13px}
 .pwdays th,.pwdays td{padding:7px 5px;border-bottom:1px solid var(--line);text-align:left}
 .pwdays th{font-size:11px;color:var(--ink-3);font-weight:600}
 .pwdays td.n,.pwdays th.n{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
 .pwdays td.r{font-family:var(--mono);text-align:right;font-weight:800;color:var(--ok)}
+.more{margin-top:12px;border-top:1px solid var(--line)}
+.more>summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(--accent);list-style:none;padding:9px 0 2px}
+.more>summary::-webkit-details-marker{display:none}
+.more>summary::before{content:"\25b8 ";font-size:10px}
+.more[open]>summary::before{content:"\25be "}
 
 /* ランキング */
-.rk+.rk{margin-top:16px;padding-top:15px;border-top:1px solid var(--line)}
+.rkpills{display:flex;gap:6px;overflow-x:auto;padding-bottom:3px;margin-bottom:13px;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none}
+.rkpills::-webkit-scrollbar{display:none}
+.rkpills button{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);border-radius:999px;
+  padding:7px 13px;cursor:pointer;font-family:inherit;font-size:12.5px;font-weight:700;color:var(--ink-2)}
+.rkpills button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .rk .h{display:flex;align-items:baseline;gap:8px;margin-bottom:9px}
 .rk .h .t{font-size:13.5px;font-weight:800}
 .rk .h .d{font-size:11px;color:var(--ink-3)}
-.rkrow{display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px solid var(--line)}
+.rkrow{display:flex;align-items:center;gap:10px;padding:8px 2px;border-bottom:1px solid var(--line)}
 .rkrow:last-child{border-bottom:none}
 .rkrow .no{width:26px;height:26px;border-radius:999px;background:var(--surface-2);color:var(--ink-2);
   font-family:var(--mono);font-size:12.5px;font-weight:800;display:flex;align-items:center;
@@ -125,9 +175,19 @@ main{flex:1;width:100%;max-width:760px;margin:0 auto;padding:14px 16px 190px}
 .rkrow.top3 .no{background:#B07A4A;color:#fff}
 .rkrow .nm{flex:1;font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rkrow.me{background:var(--accent-2);border-radius:8px;padding-left:6px;padding-right:6px}
-.rkrow.me .nm::after{content:"　あなた";font-size:11px;color:var(--ink-3);font-weight:600}
+.rkrow.me .nm::after{content:"\3000あなた";font-size:11px;color:var(--ink-3);font-weight:600}
 .rkrow .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:15px;font-weight:800}
 .rkrow .s{font-size:11px;color:var(--ink-3);font-family:var(--mono);min-width:62px;text-align:right}
+.rkme{margin-top:13px;font-size:13px;color:var(--ink-2);line-height:1.7;font-weight:700}
+.rkme b{color:var(--accent);font-size:15px}
+
+/* じぶんのこと（時給・社歴）は下にまとめる */
+.mine .mrow{display:flex;align-items:flex-start;gap:12px;padding:10px 0}
+.mine .mrow+.mrow{border-top:1px solid var(--line)}
+.mine .mk{flex:0 0 52px;font-size:12px;color:var(--ink-3);font-weight:600;padding-top:5px}
+.mine .mv{flex:1;min-width:0}
+.mine .st .big{font-size:23px}
+.mine .st .sub{margin-top:5px}
 
 .stnone{font-size:13.5px;color:var(--ink-2);line-height:1.9}
 .stnone b{color:var(--warn)}
@@ -279,21 +339,26 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
 
   <main>
     <section class="view" id="v-status" data-off>
+      <div class="spanbar" id="pwTabs">
+        <button type="button" data-p="today" aria-pressed="false">今日</button>
+        <button type="button" data-p="week" aria-pressed="false">この7日</button>
+        <button type="button" data-p="month" aria-pressed="true">今月</button>
+      </div>
+      <div class="card hero" id="stHero"><div class="card-b"></div></div>
       <div class="card"><div class="card-b">
-        <div class="cardh">時給</div>
-        <div id="stWage"></div>
-      </div></div>
-      <div class="card"><div class="card-b">
-        <div class="cardh">社歴</div>
-        <div id="stYears"></div>
-      </div></div>
-      <div class="card"><div class="card-b">
-        <div class="cardh">販売力</div>
+        <div class="cardh">自分の販売力</div>
         <div id="stSales"></div>
       </div></div>
       <div class="card"><div class="card-b">
-        <div class="cardh">ランキング</div>
+        <div class="cardh">みんなのランキング</div>
         <div id="stRank"></div>
+      </div></div>
+      <div class="card"><div class="card-b">
+        <div class="cardh">じぶんのこと</div>
+        <div class="mine">
+          <div class="mrow"><div class="mk">時給</div><div class="mv" id="stWage"></div></div>
+          <div class="mrow"><div class="mk">社歴</div><div class="mv" id="stYears"></div></div>
+        </div>
       </div></div>
     </section>
 
@@ -522,7 +587,7 @@ function connOn(){ return !!(window.Sync&&Sync.isOn()) }
 /* 入口の画面。開くとまずここが出て、押した画面だけを出す */
 document.body.dataset.sub="req";
 var SCREENS=[
-  {k:"status", ic:"📊", nm:"ステータス", ds:"時給・社歴・販売力"},
+  {k:"status", ic:"📊", nm:"ステータス", ds:"順位・販売力・時給"},
   {k:"shift",  ic:"🗓️", nm:"シフト",     ds:"希望を出す・決まったシフトを見る"},
   {k:"report", ic:"📝", nm:"店長へ報告", ds:"気づいたことを店長に伝える"},
   {k:"ai",     ic:"💬", nm:"AI店長",     ds:"困ったときに相談する"},
@@ -1051,10 +1116,9 @@ function renderMyDays(r){
 }
 
 /* ---------- ステータス ---------- */
-/* 時給は店長が「設定 → スタッフ」で入れたもの。置き場所から自分のぶんだけ受け取る。
-   一度受け取ったら手元に覚えておき、電波が無くても出せるようにする。 */
-/* 店長の名簿と突き合わせるため、空白を取り除いた名前で引く */
-function normName(n){ return String(n==null?"":n).replace(/\s|　/g,"") }
+/* 画面の並び：①いまの順位 ②自分の販売力とグラフ ③みんなのランキング ④時給と社歴。
+   いちばん上に期間の切り替えがあって、下の3つぜんぶがそれに合わせて変わる。 */
+function normName(n){ return String(n==null?"":n).replace(/\s|\u3000/g,"") }
 var joinDay=get(K_JOIN,"")||"";
 var wageInfo=get(K_WAGE,null);
 
@@ -1074,44 +1138,16 @@ function yearsText(d){
 function yen(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,",") }
 
 function renderStatus(skipPull){
-  /* --- 時給 --- */
-  var w=$("#stWage");
-  if(wageInfo&&typeof wageInfo.wage==="number"){
-    w.innerHTML='<div class="st"><span class="big">'+yen(wageInfo.wage)+'</span><span class="unit">円 / 時間</span>'+
-      '<span class="sub">店長が決めた金額です。変わると自動で新しくなります。'+
-      (wageInfo.at?'<br>'+esc(wageInfo.at)+' に確認':'')+'</span></div>';
-  }else if(wageInfo&&wageInfo.personal===false){
-    w.innerHTML='<div class="stnone"><b>このリンクでは時給を出せません。</b><br>'+
-      '時給は<b>自分だけのリンク</b>からでないと見られないようにしてあります。<br>'+
-      '店長に「ステータス用のリンクがほしい」と伝えてください。</div>';
-  }else if(wageInfo&&wageInfo.found===false){
-    w.innerHTML='<div class="stnone">まだ時給が入っていません。<br>店長に聞いてみてください。</div>';
-  }else{
-    w.innerHTML='<div class="stnone">読み込んでいます…</div>';
-  }
-  /* --- 社歴 --- */
-  var y=$("#stYears"), t=yearsText(joinDay);
-  if(!joinDay){
-    y.innerHTML='<div class="stnone"><b>入社日が未設定です。</b><br>'+
-      '<a href="#" data-go2="cfg">設定</a> で入社日を入れると、ここに出ます。</div>';
-  }else if(!t){
-    y.innerHTML='<div class="stnone">入社日を読み取れませんでした。設定で入れ直してください。</div>';
-  }else if(t.future){
-    y.innerHTML='<div class="stnone">入社日はこれからです（'+esc(joinDay.replace(/-/g,"/"))+'）。</div>';
-  }else{
-    var head=(t.y?t.y+"年 ":"")+t.m+"か月";
-    y.innerHTML='<div class="st"><span class="big">'+esc(head)+'</span>'+
-      '<span class="sub">'+esc(joinDay.replace(/-/g,"/"))+' から '+yen(t.days)+'日目です。</span></div>';
-  }
-  /* --- 販売力 --- */
+  renderHero();
   renderPower();
   renderRank();
+  renderMine();
   if(!skipPull){ pullMe(); pullPower(); pullBoard() }
 }
 
-/* ---------- 販売力 ---------- */
-/* 自分が担当だった時間の「来店」と「会計」。店長側で数えているものを、
-   自分のぶんだけ受け取る。金額は受け取らない。 */
+/* ---------- 期間 ---------- */
+/* 時給は店長が「設定 → スタッフ」で入れたもの。置き場所から自分のぶんだけ受け取る。
+   一度受け取ったら手元に覚えておき、電波が無くても出せるようにする。 */
 var powerSpan="month";
 var power=get(K_POWER,null);
 function ymd(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()) }
@@ -1121,66 +1157,204 @@ function powerRange(){
   if(powerSpan==="week"){ var a=new Date(now); a.setDate(a.getDate()-6); return {from:ymd(a), to:ymd(now)} }
   return {from:ymd(new Date(now.getFullYear(),now.getMonth(),1)), to:ymd(now)};
 }
+/* ひとつ前の同じ長さの期間。「先月より上がった」を出すために使う */
+function prevRange(){
+  var now=new Date();
+  if(powerSpan==="today"){ var a=new Date(now); a.setDate(a.getDate()-1); return {from:ymd(a),to:ymd(a)} }
+  if(powerSpan==="week"){
+    var b=new Date(now); b.setDate(b.getDate()-13);
+    var c=new Date(now); c.setDate(c.getDate()-7);
+    return {from:ymd(b),to:ymd(c)};
+  }
+  return {from:ymd(new Date(now.getFullYear(),now.getMonth()-1,1)),
+          to:ymd(new Date(now.getFullYear(),now.getMonth(),0))};
+}
+function spanName(){ return powerSpan==="today"?"今日":powerSpan==="week"?"この7日":"今月" }
+function prevName(){ return powerSpan==="today"?"前の日":powerSpan==="week"?"その前の7日":"先月" }
+function sumDays(r){
+  var o={vis:0,buy:0,qty:0};
+  ((power&&power.days)||[]).forEach(function(d){
+    if(d.day>=r.from&&d.day<=r.to){ o.vis+=d.vis||0; o.buy+=d.buy||0; o.qty+=d.qty||0 }
+  });
+  o.rate=o.vis?o.buy/o.vis:null;
+  return o;
+}
+function pct(x){ return Math.round(x*100) }
+
+/* ---------- ①いまの順位 ---------- */
+function renderHero(){
+  var el=$("#stHero .card-b");
+  if(!connOn()){
+    el.innerHTML='<div class="stnone">まだ店長とつながっていません。<br>'+
+      '<a href="#" data-go2="cfg">設定</a> でつなぐと、ここに自分の順位が出ます。</div>';
+    return;
+  }
+  if((board&&board.personal===false)||(power&&power.personal===false)){
+    el.innerHTML='<div class="stnone"><b>このリンクでは出せません。</b><br>'+
+      '自分の成績は<b>自分だけのリンク</b>からでないと見られないようにしてあります。<br>'+
+      '店長に「ステータス用のリンクがほしい」と伝えてください。</div>';
+    return;
+  }
+  if(!board||!power){ el.innerHTML='<div class="stnone">読み込んでいます…</div>'; return }
+
+  var rows=board.rows||[], me=board.me||"";
+  var now=sumDays(powerRange()), was=sumDays(prevRange());
+  if(!now.vis&&!now.buy){
+    el.innerHTML='<div class="hmsg" style="margin-top:0">'+esc(spanName())+'はまだ記録がありません。</div>'+
+      '<div class="stnone" style="margin-top:7px">お店で「来店」を数えて、レジを打つと'+
+      'ここに順位が出ます。</div>';
+    return;
+  }
+
+  var list=totalRank(rows), mine=null;
+  list.forEach(function(x){ if(x.name===me) mine=x });
+  var n=list.length, pos=mine&&mine.pos;
+  var sv=0,sb=0; rows.forEach(function(r){ sv+=r.vis||0; sb+=r.buy||0 });
+  var avg=sv?sb/sv:null;
+
+  var med=pos===1?"🥇":pos===2?"🥈":pos===3?"🥉":"💪";
+  var h='<div class="hrow"><div class="medal">'+med+'</div><div class="hmain">'+
+    (pos?'<div class="hpos"><b>'+pos+'</b>位 <span>/ '+n+'人</span></div>'
+        :'<div class="hpos"><b>—</b> <span>順位はまだつきません</span></div>')+
+    '<div class="hcap">総合力の順位・'+esc(spanName())+'</div></div>'+
+    '<div class="hrate"><div class="k">販売力</div><div class="v">'+
+      (now.rate===null?"—":pct(now.rate)+'<small>%</small>')+'</div>';
+  if(now.rate!==null&&was.rate!==null){
+    var d=pct(now.rate)-pct(was.rate);
+    h+='<div class="dlt '+(d>0?"up":d<0?"dn":"")+'">'+(d>0?"＋":d<0?"−":"±")+Math.abs(d)+'pt</div>';
+  }
+  h+='</div></div>';
+
+  /* 自分の販売力と、みんなの平均をならべて見せる */
+  if(now.rate!==null&&avg!==null){
+    var top=Math.min(1,Math.max(.5,Math.ceil(Math.max(now.rate,avg)*10)/10+.1));
+    h+='<div class="gauge"><i style="width:'+Math.min(100,now.rate/top*100).toFixed(1)+'%"></i>'+
+       '<u style="left:'+Math.min(100,avg/top*100).toFixed(1)+'%"></u></div>'+
+       '<div class="glab"><span>自分 '+pct(now.rate)+'%</span>'+
+       '<span>みんなの平均 '+pct(avg)+'%</span></div>';
+  }
+
+  var msg;
+  if(pos===1) msg="いまトップです。この調子で。";
+  else if(now.rate!==null&&was.rate!==null&&pct(now.rate)>pct(was.rate))
+    msg=prevName()+"より上がっています。いい流れです。";
+  else if(avg!==null&&now.rate!==null&&now.rate>avg) msg="みんなの平均より上です。";
+  else if(pos&&pos<=3) msg="あと少しで "+(pos-1)+"位です。";
+  else if(pos) msg="まずはひとり追い越しましょう。";
+  else msg="レジを打つと順位がつきます。";
+  h+='<div class="hmsg">'+esc(msg)+'</div>';
+  el.innerHTML=h;
+}
+
+/* ---------- ②自分の販売力 ---------- */
+/* 自分が担当だった時間の「来店」と「会計」。店長側で数えているものを、
+   自分のぶんだけ受け取る。金額は受け取らない。 */
 function renderPower(){
   var el=$("#stSales");
-  var tabs='<div class="pwtabs" id="pwTabs">'+
-    [["today","今日"],["week","この7日"],["month","今月"]].map(function(x){
-      return '<button type="button" data-p="'+x[0]+'" aria-pressed="'+(powerSpan===x[0])+'">'+x[1]+'</button>';
-    }).join("")+'</div>';
-
-  if(!connOn()){
-    el.innerHTML=tabs+'<div class="stnone">まだ店長とつながっていません。</div>'; return;
-  }
+  if(!connOn()){ el.innerHTML='<div class="stnone">まだ店長とつながっていません。</div>'; return }
   if(power&&power.personal===false){
-    el.innerHTML=tabs+'<div class="stnone"><b>このリンクでは出せません。</b><br>'+
+    el.innerHTML='<div class="stnone"><b>このリンクでは出せません。</b><br>'+
       '販売力は<b>自分だけのリンク</b>からでないと見られないようにしてあります。<br>'+
       '店長に「ステータス用のリンクがほしい」と伝えてください。</div>';
     return;
   }
-  if(!power){ el.innerHTML=tabs+'<div class="stnone">読み込んでいます…</div>'; return }
+  if(!power){ el.innerHTML='<div class="stnone">読み込んでいます…</div>'; return }
 
   var r=powerRange();
-  var days=(power.days||[]).filter(function(d){ return d.day>=r.from&&d.day<=r.to });
-  var vis=0, buy=0, qty=0;
-  days.forEach(function(d){ vis+=d.vis||0; buy+=d.buy||0; qty+=d.qty||0 });
-  var rate=vis?Math.round(buy/vis*100):null;
-
-  var h=tabs+'<div class="pw">'+
-    '<div class="seg2"><div class="k">来店</div><div class="v">'+vis+'</div></div>'+
-    '<div class="seg2"><div class="k">お買い上げ</div><div class="v">'+buy+'</div></div>'+
+  var all=(power.days||[]).filter(function(d){ return d.day>=r.from&&d.day<=r.to });
+  var s=sumDays(r);
+  var h='<div class="pw">'+
+    '<div class="seg2"><div class="k">来店</div><div class="v">'+s.vis+'</div></div>'+
+    '<div class="seg2"><div class="k">お買い上げ</div><div class="v">'+s.buy+'</div></div>'+
     '<div class="seg2 rate"><div class="k">販売力</div><div class="v">'+
-      (rate===null?"—":rate+"%")+'</div></div>'+
+      (s.rate===null?"—":pct(s.rate)+"%")+'</div></div>'+
     '</div>';
 
-  if(!vis&&!buy){
-    h+='<div class="stnone" style="margin-top:11px">この期間はまだ記録がありません。<br>'+
+  /* グラフは日ごと。その期間に2日ぶんも無いときは、直近2週間をかわりに見せる */
+  var days=all.filter(function(d){ return (d.vis||0)>0 }), wide=false;
+  if(days.length<3){
+    var a=new Date(); a.setDate(a.getDate()-13);
+    var w=(power.days||[]).filter(function(d){ return d.day>=ymd(a)&&(d.vis||0)>0 });
+    if(w.length>days.length){ days=w; wide=true }
+  }
+  if(days.length){
+    var best=days.reduce(function(x,y){ return (y.buy/y.vis)>(x.buy/x.vis)?y:x });
+    var av=0,sv2=0,sb2=0;
+    days.forEach(function(d){ sv2+=d.vis; sb2+=d.buy }); av=sv2?pct(sb2/sv2):0;
+    h+='<div class="pwhd"><span class="t">日ごとの販売力</span>'+
+       '<span class="d">'+(wide?"直近2週間":esc(spanName()))+'・平均'+av+'%</span></div>'+
+       chartHtml(days)+
+       '<div class="stnone" style="margin-top:7px">ベストは '+
+       esc(best.day.slice(5).replace("-","/"))+' の <b style="color:var(--ok)">'+
+       pct(best.buy/best.vis)+'%</b>（来店'+best.vis+'・お買い上げ'+best.buy+'）。</div>';
+  }
+
+  if(!s.vis&&!s.buy){
+    h+='<div class="stnone" style="margin-top:12px">'+esc(spanName())+'はまだ記録がありません。<br>'+
        'お店の「来店」を数えて、レジを打つと出ます。</div>';
   }else{
-    h+='<div class="stnone" style="margin-top:11px">'+
-       '自分が<b>担当になっていた時間</b>の数です。点数は '+qty+'点。<br>'+
+    h+='<div class="stnone" style="margin-top:12px">'+
+       '自分が<b>担当になっていた時間</b>の数です。点数は '+s.qty+'点。<br>'+
        '販売力＝お買い上げ ÷ 来店。'+
        (power.at?'<br>'+esc(power.at)+' に確認':'')+'</div>';
-    var show=days.slice().reverse().slice(0,14);
-    if(show.length>1){
-      h+='<table class="pwdays"><thead><tr><th>日</th><th class="n">来店</th>'+
-         '<th class="n">お買い上げ</th><th class="n">販売力</th></tr></thead><tbody>'+
-         show.map(function(d){
-           var rr=d.vis?Math.round(d.buy/d.vis*100)+"%":"—";
-           return '<tr><td>'+esc(d.day.slice(5).replace("-","/"))+'</td>'+
-             '<td class="n">'+(d.vis||0)+'</td><td class="n">'+(d.buy||0)+'</td>'+
-             '<td class="r">'+rr+'</td></tr>';
-         }).join("")+'</tbody></table>';
-    }
+  }
+
+  if(all.length>1){
+    h+='<details class="more"><summary>日ごとの数字を見る</summary>'+
+       '<table class="pwdays"><thead><tr><th>日</th><th class="n">来店</th>'+
+       '<th class="n">お買い上げ</th><th class="n">販売力</th></tr></thead><tbody>'+
+       all.slice().reverse().map(function(d){
+         var rr=d.vis?pct(d.buy/d.vis)+"%":"—";
+         return '<tr><td>'+esc(d.day.slice(5).replace("-","/"))+'</td>'+
+           '<td class="n">'+(d.vis||0)+'</td><td class="n">'+(d.buy||0)+'</td>'+
+           '<td class="r">'+rr+'</td></tr>';
+       }).join("")+'</tbody></table></details>';
   }
   el.innerHTML=h;
 }
-$("#stSales").addEventListener("click",function(e){
-  var b=e.target.closest("[data-p]"); if(!b) return;
-  powerSpan=b.dataset.p; renderPower(); renderRank(); pullBoard();
-});
-/* ---------- ランキング ---------- */
+
+/* 棒グラフ。絵はその場で描くので、電波が無くても出る */
+function chartHtml(days){
+  var W=320,H=134,pl=25,pr=8,pt=15,pb=18;
+  var n=days.length, iw=W-pl-pr, ih=H-pt-pb;
+  var vals=days.map(function(d){ return d.buy/d.vis });
+  var mx=Math.max.apply(null,vals);
+  var top=Math.max(.4,Math.ceil(mx*10)/10); if(top>1) top=1;
+  var sv=0,sb=0; days.forEach(function(d){ sv+=d.vis; sb+=d.buy });
+  var avg=sv?sb/sv:0;
+  var bw=iw/n, w=Math.max(4,Math.min(26,bw*.62));
+  var td=ymd(new Date()), g="";
+
+  [0,top/2,top].forEach(function(v){
+    var y=pt+ih-ih*(v/top);
+    g+='<line class="grid" x1="'+pl+'" y1="'+y.toFixed(1)+'" x2="'+(W-pr)+'" y2="'+y.toFixed(1)+
+       '" stroke-width="1"/>'+
+       '<text x="'+(pl-5)+'" y="'+(y+3.2).toFixed(1)+'" text-anchor="end">'+Math.round(v*100)+'</text>';
+  });
+  days.forEach(function(d,i){
+    var v=d.buy/d.vis, x=pl+bw*i+(bw-w)/2;
+    var hh=Math.max(2,ih*(v/top)), y=pt+ih-hh;
+    g+='<rect class="bar'+(v>=mx?" best":"")+(d.day===td?" today":"")+
+       '" x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+w.toFixed(1)+
+       '" height="'+hh.toFixed(1)+'" rx="3"/>';
+    if(n<=10) g+='<text class="val" x="'+(x+w/2).toFixed(1)+'" y="'+(y-3.5).toFixed(1)+
+       '" text-anchor="middle">'+Math.round(v*100)+'</text>';
+    if(n<=16||i%2===0||i===n-1) g+='<text x="'+(x+w/2).toFixed(1)+'" y="'+(H-5)+
+       '" text-anchor="middle">'+d.day.slice(8).replace(/^0/,"")+'</text>';
+  });
+  var ay=pt+ih-ih*(avg/top);
+  g+='<line class="avg" x1="'+pl+'" y1="'+ay.toFixed(1)+'" x2="'+(W-pr)+'" y2="'+ay.toFixed(1)+
+     '" stroke-width="1.2"/>';
+  return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="日ごとの販売力の棒グラフ">'+
+    g+'</svg>';
+}
+
+/* ---------- ③みんなのランキング ---------- */
 /* 全員ぶんの件数だけを受け取って、順位は手元でつける。金額は届かない。 */
 var board=get(K_BOARD,null);
+var rankKind="total";
+var RANKS=[["total","総合力"],["rate","販売率"],["qty","販売数"],["hi","高単価"],
+  ["west","欧米"],["asia","アジア"],["jp","日本"]];
 function rate(buy,vis){ return vis?buy/vis:null }
 /* 1位からの並びを作る。val が null の人は「—」で下に置く */
 function rankList(rows,val,fmt){
@@ -1196,18 +1370,49 @@ function rankList(rows,val,fmt){
   a.forEach(function(x,i){ if(prev===null||x.v!==prev){ pos=i+1; prev=x.v } x.pos=(x.v===null?null:pos) });
   return a;
 }
+/* 総合力＝販売率・販売数・高単価販売数の3つの順位を足して、小さい人が上 */
+function totalRank(rows){
+  var r1=rankList(rows,function(r){ return rate(r.buy,r.vis) });
+  var r2=rankList(rows,function(r){ return r.qty });
+  var r3=rankList(rows,function(r){ return r.hiqty });
+  var pos={};
+  [r1,r2,r3].forEach(function(l){
+    l.forEach(function(x){ pos[x.name]=(pos[x.name]||0)+(x.pos||rows.length+1) });
+  });
+  var a=rankList(rows,function(r){ return -(pos[r.name]||0) },function(r){ return (pos[r.name]||0)+"点" });
+  /* 点数そのものは出さず、順位だけ見せる */
+  a.forEach(function(x){ x.v=(x.v===null?null:0) });
+  return a;
+}
 function rkBlock(title,desc,list,unit){
   var me=board&&board.me;
   return '<div class="rk"><div class="h"><span class="t">'+esc(title)+'</span>'+
     '<span class="d">'+esc(desc)+'</span></div>'+
     list.map(function(x){
       var cls=(x.pos===1?"top1":x.pos===2?"top2":x.pos===3?"top3":"")+((x.name===me)?" me":"");
-      var v=(x.v===null)?(unit===""?"":"—"):(unit==="%"?Math.round(x.v*100)+"%":x.v+unit);
+      var v=(unit==="")?"":(x.v===null)?"—":(unit==="%"?Math.round(x.v*100)+"%":x.v+unit);
       return '<div class="rkrow '+cls+'"><span class="no">'+(x.pos==null?"—":x.pos)+'</span>'+
         '<span class="nm">'+esc(x.name)+'</span>'+
         '<span class="s">'+esc(x.sub)+'</span>'+
         '<span class="v">'+v+'</span></div>';
     }).join("")+'</div>';
+}
+function rankOne(rows,kind){
+  if(kind==="rate") return {t:"販売率",d:"お買い上げ ÷ 来店",u:"%",
+    list:rankList(rows,function(r){ return rate(r.buy,r.vis) },function(r){ return r.buy+"/"+r.vis })};
+  if(kind==="qty") return {t:"販売数",d:"売れた点数",u:"点",
+    list:rankList(rows,function(r){ return r.qty },function(r){ return r.buy+"件" })};
+  if(kind==="hi") return {t:"高単価販売数",
+    d:(board.hi?board.hi.toLocaleString("ja-JP"):"3,000")+"円以上の点数",u:"点",
+    list:rankList(rows,function(r){ return r.hiqty })};
+  if(kind==="west"||kind==="asia"||kind==="jp"){
+    var nm={west:"欧米",asia:"アジア",jp:"日本"}[kind];
+    return {t:nm+"の方への販売力",d:"お買い上げ ÷ 来店",u:"%",
+      list:rankList(rows,
+        function(r){ return rate((r.buyA||{})[kind]||0,(r.visA||{})[kind]||0) },
+        function(r){ return ((r.buyA||{})[kind]||0)+"/"+((r.visA||{})[kind]||0) })};
+  }
+  return {t:"総合力",d:"3つの順位を足した点（少ないほど上）",u:"",list:totalRank(rows)};
 }
 function renderRank(){
   var el=$("#stRank");
@@ -1220,49 +1425,76 @@ function renderRank(){
   if(!board){ el.innerHTML='<div class="stnone">読み込んでいます…</div>'; return }
   var rows=board.rows||[];
   if(!rows.length){
-    el.innerHTML='<div class="stnone">まだ記録がありません。<br>'+
+    el.innerHTML='<div class="stnone">'+esc(spanName())+'はまだ記録がありません。<br>'+
       'お店で「来店」を数えて、レジを打つと出ます。</div>';
     return;
   }
+  var pills='<div class="rkpills">'+RANKS.map(function(x){
+    return '<button type="button" data-r="'+x[0]+'" aria-pressed="'+(rankKind===x[0])+'">'+
+      esc(x[1])+'</button>';
+  }).join("")+'</div>';
 
-  /* 総合力＝販売率・販売数・高単価販売数の3つの順位を足して、小さい人が上 */
-  var r1=rankList(rows,function(r){ return rate(r.buy,r.vis) });
-  var r2=rankList(rows,function(r){ return r.qty });
-  var r3=rankList(rows,function(r){ return r.hiqty });
-  var pos={};
-  [r1,r2,r3].forEach(function(l){
-    l.forEach(function(x){ pos[x.name]=(pos[x.name]||0)+(x.pos||rows.length+1) });
-  });
-  var total=rankList(rows,function(r){ return -(pos[r.name]||0) },function(r){
-    return (pos[r.name]||0)+"点";
-  });
-  /* 総合力は点数そのものを出さず、順位だけ見せる */
-  total.forEach(function(x){ x.v=(x.v===null?null:0) });
+  var one=rankOne(rows,rankKind), me=board.me||"", mine=null;
+  one.list.forEach(function(x){ if(x.name===me) mine=x });
+  var line = (mine&&mine.pos)
+    ? '<div class="rkme">あなたは <b>'+mine.pos+'位</b> / '+one.list.length+'人'+
+      (mine.pos===1?'　いまトップです。':'')+'</div>'
+    : '<div class="rkme" style="font-weight:600;color:var(--ink-3)">'+esc(spanName())+
+      'は自分の記録がまだありません。</div>';
 
-  var h=rkBlock("総合力","販売率・販売数・高単価の合計",total.map(function(x){
-        return {name:x.name, v:null, sub:x.sub, pos:x.pos};
-      }),"")+
-    rkBlock("販売率","お買い上げ ÷ 来店",
-      rankList(rows,function(r){ return rate(r.buy,r.vis) },
-        function(r){ return r.buy+"/"+r.vis }),"%")+
-    rkBlock("販売数","売れた点数",
-      rankList(rows,function(r){ return r.qty },
-        function(r){ return r.buy+"件" }),"点")+
-    rkBlock("高単価販売数",(board.hi?board.hi.toLocaleString("ja-JP"):"3,000")+"円以上の点数",
-      rankList(rows,function(r){ return r.hiqty }),"点");
-
-  [["west","欧米"],["asia","アジア"],["jp","日本"]].forEach(function(a){
-    h+=rkBlock(a[1]+"の方への販売力","お買い上げ ÷ 来店",
-      rankList(rows,function(r){ return rate((r.buyA||{})[a[0]]||0,(r.visA||{})[a[0]]||0) },
-        function(r){ return ((r.buyA||{})[a[0]]||0)+"/"+((r.visA||{})[a[0]]||0) }),"%");
-  });
-
-  h+='<div class="stnone" style="margin-top:14px">'+
-     (powerSpan==="today"?"今日":powerSpan==="week"?"この7日":"今月")+'の数です。'+
-     '上の<b>販売力</b>の切り替えに合わせて変わります。<br>'+
-     '同じ数字のときは同じ順位になります。</div>';
-  el.innerHTML=h;
+  el.innerHTML=pills+rkBlock(one.t,one.d,one.list,one.u)+line+
+    '<div class="stnone" style="margin-top:12px">'+esc(spanName())+'の数です。'+
+    '上の<b>期間</b>の切り替えに合わせて変わります。<br>'+
+    '同じ数字のときは同じ順位になります。</div>';
 }
+
+/* ---------- ④じぶんのこと（時給・社歴） ---------- */
+function renderMine(){
+  var w=$("#stWage");
+  if(wageInfo&&typeof wageInfo.wage==="number"){
+    w.innerHTML='<div class="st"><span class="big">'+yen(wageInfo.wage)+'</span>'+
+      '<span class="unit">円 / 時間</span>'+
+      '<span class="sub">店長が決めた金額です。変わると自動で新しくなります。'+
+      (wageInfo.at?'<br>'+esc(wageInfo.at)+' に確認':'')+'</span></div>';
+  }else if(wageInfo&&wageInfo.personal===false){
+    w.innerHTML='<div class="stnone"><b>このリンクでは時給を出せません。</b><br>'+
+      '時給は<b>自分だけのリンク</b>からでないと見られないようにしてあります。<br>'+
+      '店長に「ステータス用のリンクがほしい」と伝えてください。</div>';
+  }else if(wageInfo&&wageInfo.found===false){
+    w.innerHTML='<div class="stnone">まだ時給が入っていません。<br>店長に聞いてみてください。</div>';
+  }else{
+    w.innerHTML='<div class="stnone">読み込んでいます…</div>';
+  }
+
+  var y=$("#stYears"), t=yearsText(joinDay);
+  if(!joinDay){
+    y.innerHTML='<div class="stnone"><b>入社日が未設定です。</b><br>'+
+      '<a href="#" data-go2="cfg">設定</a> で入社日を入れると、ここに出ます。</div>';
+  }else if(!t){
+    y.innerHTML='<div class="stnone">入社日を読み取れませんでした。設定で入れ直してください。</div>';
+  }else if(t.future){
+    y.innerHTML='<div class="stnone">入社日はこれからです（'+esc(joinDay.replace(/-/g,"/"))+'）。</div>';
+  }else{
+    var head=(t.y?t.y+"年 ":"")+t.m+"か月";
+    y.innerHTML='<div class="st"><span class="big">'+esc(head)+'</span>'+
+      '<span class="sub">'+esc(joinDay.replace(/-/g,"/"))+' から '+yen(t.days)+'日目です。</span></div>';
+  }
+}
+
+/* ---------- 切り替え ---------- */
+$("#pwTabs").addEventListener("click",function(e){
+  var b=e.target.closest("[data-p]"); if(!b) return;
+  powerSpan=b.dataset.p;
+  Array.prototype.forEach.call($("#pwTabs").querySelectorAll("button"),function(x){
+    x.setAttribute("aria-pressed",String(x.dataset.p===powerSpan));
+  });
+  renderHero(); renderPower(); renderRank(); pullBoard();
+});
+$("#stRank").addEventListener("click",function(e){
+  var b=e.target.closest("[data-r]"); if(!b) return;
+  rankKind=b.dataset.r; renderRank();
+});
+
 async function pullBoard(){
   if(!connOn()) return;
   try{
@@ -1270,23 +1502,23 @@ async function pullBoard(){
     var r=await Sync.powerBoard(r0.from,r0.to);
     board={personal:(r.personal!==false), me:r.me||"", hi:r.hi||3000, rows:r.rows||[]};
     set(K_BOARD,board);
-    if(document.body.dataset.screen==="status") renderRank();
+    if(document.body.dataset.screen==="status"){ renderRank(); renderHero() }
   }catch(e){}
 }
 
 async function pullPower(){
   if(!connOn()) return;
   try{
-    /* 今月のはじめから今日まで、まとめて受け取っておく（切り替えは手元で済ませる） */
+    /* 先月のはじめから今日まで、まとめて受け取っておく（切り替えと「先月より」は手元で済ませる） */
     var now=new Date();
-    var from=ymd(new Date(now.getFullYear(),now.getMonth(),1));
-    var a=new Date(now); a.setDate(a.getDate()-6);
+    var from=ymd(new Date(now.getFullYear(),now.getMonth()-1,1));
+    var a=new Date(now); a.setDate(a.getDate()-13);
     if(ymd(a)<from) from=ymd(a);
     var r=await Sync.mePower(from,ymd(now));
     power={personal:(r.personal!==false), days:r.days||[],
       at:new Date().toLocaleString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})};
     set(K_POWER,power);
-    if(document.body.dataset.screen==="status") renderPower();
+    if(document.body.dataset.screen==="status"){ renderPower(); renderHero() }
   }catch(e){}
 }
 /* 自分のリンクに入っている合言葉から、店長が本人を見分ける。
