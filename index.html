@@ -239,10 +239,16 @@ main{flex:1;width:100%;max-width:760px;margin:0 auto;padding:14px 16px 190px}
 .rkrow .nm{flex:1;font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rkrow.me{background:var(--accent-2);border-radius:8px;padding-left:6px;padding-right:6px}
 .rkrow.me .nm::after{content:"\3000あなた";font-size:11px;color:var(--ink-3);font-weight:600}
+.rkrow.me.solo .nm::after{content:none}
 .rkrow .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:15px;font-weight:800}
 .rkrow .s{font-size:11px;color:var(--ink-3);font-family:var(--mono);min-width:62px;text-align:right}
 .rkme{margin-top:13px;font-size:13px;color:var(--ink-2);line-height:1.7;font-weight:700}
 .rkme b{color:var(--accent);font-size:15px}
+.rkgoal{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.rkgoal span{flex:1;min-width:120px;background:var(--surface-2);border:1px solid var(--line);
+  border-radius:10px;padding:9px 11px;font-size:11.5px;color:var(--ink-3);font-weight:600}
+.rkgoal b{display:block;font-family:var(--mono);font-variant-numeric:tabular-nums;
+  font-size:17px;font-weight:800;color:var(--ink);margin-top:2px}
 
 /* じぶんのこと（時給・社歴）は下にまとめる */
 .mine .mrow{display:flex;align-items:flex-start;gap:12px;padding:10px 0}
@@ -422,7 +428,7 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
         <div id="stCats"></div>
       </div></div>
       <div class="card"><div class="card-b">
-        <div class="cardh">みんなのランキング</div>
+        <div class="cardh">自分の順位</div>
         <div id="stRank"></div>
       </div></div>
       <div class="card"><div class="card-b">
@@ -1693,18 +1699,33 @@ function totalRank(rows){
   a.forEach(function(x){ x.v=(x.v===null?null:0) });
   return a;
 }
-function rkBlock(title,desc,list,unit){
-  var me=board&&board.me;
-  return '<div class="rk"><div class="h"><span class="t">'+esc(title)+'</span>'+
-    '<span class="d">'+esc(desc)+'</span></div>'+
-    list.map(function(x){
-      var cls=(x.pos===1?"top1":x.pos===2?"top2":x.pos===3?"top3":"")+((x.name===me)?" me":"");
-      var v=(unit==="")?"":(x.v===null)?"—":(unit==="%"?Math.round(x.v*100)+"%":x.v+unit);
-      return '<div class="rkrow '+cls+'"><span class="no">'+(x.pos==null?"—":x.pos)+'</span>'+
-        '<span class="nm">'+esc(x.name)+'</span>'+
-        '<span class="s">'+esc(x.sub)+'</span>'+
-        '<span class="v">'+v+'</span></div>';
-    }).join("")+'</div>';
+/* ほかの人の名前と数字は出さない（竹本さんの指示）。出すのは自分の行だけ。
+   「みんなの平均」と「お店でいちばんの数字」は、だれのものか分からないので目標として出す。 */
+function rkMine(title,desc,one,me,list){
+  var mine=null; list.forEach(function(x){ if(x.name===me) mine=x });
+  var h='<div class="rk"><div class="h"><span class="t">'+esc(title)+'</span>'+
+    '<span class="d">'+esc(desc)+'</span></div>';
+  if(!mine||!mine.pos){
+    return h+'<div class="stnone">'+esc(spanName())+'は自分の記録がまだありません。</div></div>';
+  }
+  var cls=(mine.pos===1?"top1":mine.pos===2?"top2":mine.pos===3?"top3":"")+" me solo";
+  var v=(one.u==="")?"":(mine.v===null)?"—":(one.u==="%"?Math.round(mine.v*100)+"%":mine.v+one.u);
+  h+='<div class="rkrow '+cls+'"><span class="no">'+mine.pos+'</span>'+
+     '<span class="nm">'+esc(me)+'</span>'+
+     '<span class="s">'+esc(mine.sub)+'</span>'+
+     '<span class="v">'+v+'</span></div>';
+  return h+'</div>';
+}
+/* 目標にする数字。名前は出さない */
+function rkGoal(one,list){
+  var vs=[];
+  list.forEach(function(x){ if(x.v!==null) vs.push(x.v) });
+  if(one.u===""||vs.length<2) return "";
+  var sum=0; vs.forEach(function(x){ sum+=x });
+  var avg=sum/vs.length, mx=Math.max.apply(null,vs);
+  function f(x){ return one.u==="%"?Math.round(x*100)+"%":(Math.round(x*10)/10)+one.u }
+  return '<div class="rkgoal"><span>みんなの平均 <b>'+f(avg)+'</b></span>'+
+         '<span>お店でいちばん <b>'+f(mx)+'</b></span></div>';
 }
 function rankOne(rows,kind){
   if(kind==="rate") return {t:"販売率",d:"お買い上げ ÷ 来店",u:"%",
@@ -1748,13 +1769,12 @@ function renderRank(){
   var line = (mine&&mine.pos)
     ? '<div class="rkme">あなたは <b>'+mine.pos+'位</b> / '+one.list.length+'人'+
       (mine.pos===1?'　いまトップです。':'')+'</div>'
-    : '<div class="rkme" style="font-weight:600;color:var(--ink-3)">'+esc(spanName())+
-      'は自分の記録がまだありません。</div>';
+    : '';
 
-  el.innerHTML=pills+rkBlock(one.t,one.d,one.list,one.u)+line+
+  el.innerHTML=pills+rkMine(one.t,one.d,one,me,one.list)+line+rkGoal(one,one.list)+
     '<div class="stnone" style="margin-top:12px">'+esc(spanName())+'の数です。'+
     '上の<b>期間</b>の切り替えに合わせて変わります。<br>'+
-    '同じ数字のときは同じ順位になります。</div>';
+    'ほかの人の名前と数字は出ません。同じ数字のときは同じ順位になります。</div>';
 }
 
 /* ---------- ④じぶんのこと（時給・社歴） ---------- */
