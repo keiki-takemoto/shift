@@ -131,6 +131,62 @@ main{flex:1;width:100%;max-width:760px;margin:0 auto;padding:14px 16px 190px}
   font-family:var(--mono)}
 .hmsg{margin-top:13px;font-size:13px;font-weight:700;color:var(--accent);line-height:1.6}
 
+/* 5つの力（レーダー） */
+.htop{display:flex;align-items:center;gap:12px;margin-bottom:2px}
+.hscore{margin-left:auto;text-align:right;flex:0 0 auto}
+.hscore .k{font-size:11px;color:var(--ink-3)}
+.hscore .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:31px;font-weight:800;
+  line-height:1.1;color:var(--ok)}
+.hscore .v small{font-size:13px;font-weight:700;color:var(--ink-3)}
+.radar{width:100%;height:auto;display:block;max-width:330px;margin:0 auto}
+.radar .g{fill:none;stroke:var(--line-2);stroke-width:1;opacity:.75}
+.radar .g.o{stroke:var(--ink-3);opacity:.6}
+.radar .area{fill:var(--ok);fill-opacity:.22;stroke:var(--ok);stroke-width:2;stroke-linejoin:round}
+.radar .dot{fill:var(--ok)}
+.radar text.ax{font-size:11.5px;font-weight:700;fill:var(--ink);font-family:var(--ui)}
+.axl{margin-top:4px}
+.axrow{display:flex;align-items:center;gap:9px;padding:7px 0;border-top:1px solid var(--line)}
+.axrow .nm{flex:0 0 52px;font-size:12.5px;font-weight:800}
+.axrow .ds{flex:1;min-width:0;font-size:11.5px;color:var(--ink-3);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.axrow .nu{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:12.5px;
+  font-weight:700;color:var(--ink-2);flex:0 0 auto}
+.axrow .sc{font-family:var(--mono);font-size:12.5px;font-weight:800;flex:0 0 30px;text-align:right}
+.axrow .sc.up{color:var(--ok)}
+.axrow .sc.dn{color:var(--ink-3)}
+
+/* ほめるところ／のばすところ */
+.gdh{display:flex;align-items:center;gap:7px;font-size:13.5px;font-weight:800;margin-bottom:10px}
+.gd{display:flex;align-items:flex-start;gap:10px;padding:9px 0}
+.gd+.gd{border-top:1px solid var(--line)}
+.gd .bdg{flex:0 0 auto;font-size:11px;font-weight:800;border-radius:999px;padding:3px 9px;
+  background:var(--surface-2);color:var(--ink-2);font-family:var(--mono)}
+.gd .bdg.one{background:#C9A227;color:#fff}
+.gd .tx{flex:1;min-width:0;font-size:13px;line-height:1.7;color:var(--ink)}
+.gd .tx b{color:var(--ok)}
+.gd .tx .sm{display:block;font-size:11.5px;color:var(--ink-3);font-weight:600;margin-top:2px;
+  font-family:var(--mono)}
+.grow{margin-top:14px;padding-top:13px;border-top:1px solid var(--line)}
+.grow .t{font-size:12.5px;font-weight:800;color:var(--warn);margin-bottom:7px}
+.grow .tx{font-size:13px;line-height:1.75;color:var(--ink-2)}
+.grow .tx b{color:var(--ink)}
+
+/* 商品の種類 */
+.cat{padding:8px 0}
+.cat+.cat{border-top:1px solid var(--line)}
+.cathd{display:flex;align-items:baseline;gap:7px;font-size:13px;font-weight:700}
+.cathd .n{margin-left:auto;font-family:var(--mono);font-variant-numeric:tabular-nums;
+  font-size:13px;font-weight:800;color:var(--ink)}
+.cathd .md{font-size:10.5px;font-weight:800;color:var(--ok);background:var(--ok-bg);
+  border-radius:999px;padding:2px 7px}
+.catbar{position:relative;height:8px;border-radius:999px;background:var(--surface-3);margin-top:6px}
+.catbar i{display:block;height:100%;border-radius:999px;background:var(--accent);min-width:3px}
+.catbar i.good{background:var(--ok)}
+.catbar u{position:absolute;top:-2px;width:2px;height:12px;background:var(--ink-2);opacity:.55;
+  border-radius:1px}
+.catft{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-3);margin-top:5px;
+  font-family:var(--mono)}
+
 /* 販売力 */
 .pw{display:flex;gap:10px;flex-wrap:wrap}
 .pw .seg2{flex:1;min-width:92px;background:var(--surface-2);border:1px solid var(--line);
@@ -356,9 +412,14 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
         <label>まで<input type="date" id="spTo"></label>
       </div>
       <div class="card hero" id="stHero"><div class="card-b"></div></div>
+      <div class="card" id="stGood"><div class="card-b"></div></div>
       <div class="card"><div class="card-b">
         <div class="cardh">自分の販売力</div>
         <div id="stSales"></div>
+      </div></div>
+      <div class="card"><div class="card-b">
+        <div class="cardh">売れている商品の種類</div>
+        <div id="stCats"></div>
       </div></div>
       <div class="card"><div class="card-b">
         <div class="cardh">みんなのランキング</div>
@@ -598,7 +659,7 @@ function connOn(){ return !!(window.Sync&&Sync.isOn()) }
 /* 入口の画面。開くとまずここが出て、押した画面だけを出す */
 document.body.dataset.sub="req";
 var SCREENS=[
-  {k:"status", ic:"📊", nm:"ステータス", ds:"順位・販売力・時給"},
+  {k:"status", ic:"📊", nm:"ステータス", ds:"5つの力・順位・時給"},
   {k:"shift",  ic:"🗓️", nm:"シフト",     ds:"希望を出す・決まったシフトを見る"},
   {k:"report", ic:"📝", nm:"店長へ報告", ds:"気づいたことを店長に伝える"},
   {k:"ai",     ic:"💬", nm:"AI店長",     ds:"困ったときに相談する"},
@@ -1151,7 +1212,9 @@ function yen(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,",") }
 function renderStatus(skipPull){
   renderSpan();
   renderHero();
+  renderGood();
   renderPower();
+  renderItemCats();
   renderRank();
   renderMine();
   if(!skipPull){ pullMe(); pullPower(); pullBoard() }
@@ -1213,12 +1276,104 @@ function sumDays(r){
 }
 function pct(x){ return Math.round(x*100) }
 
-/* ---------- ①いまの順位 ---------- */
+/* ---------- ①5つの力（レーダー） ---------- */
+/* 5つとも「みんなの中での位置」を0〜100にして出す。まん中の50がみんなの平均、
+   100はお店でいちばん。自分の数字そのものは下の一覧に出す。 */
+var AXES=[
+  {k:"sell", nm:"販売力", ds:"来たお客さまが買ってくれた割合",
+    v:function(r){ return r.vis?r.buy/r.vis:null },
+    tx:function(r){ return (r.vis?Math.round(r.buy/r.vis*100):0)+"%" },
+    av:function(x){ return Math.round(x*100)+"%" },
+    tip:"来たお客さまに、まず声をかける数を増やしてみましょう。"},
+  {k:"set", nm:"提案力", ds:"1回のお会計で売れた点数",
+    v:function(r){ return r.buy?r.qty/r.buy:null },
+    tx:function(r){ return (r.buy?(r.qty/r.buy).toFixed(1):"0.0")+"点" },
+    av:function(x){ return x.toFixed(1)+"点" },
+    tip:"お会計のときに「こちらもいかがですか」をひとこと添えてみましょう。"},
+  {k:"hi", nm:"単価力", ds:"高単価の商品が売れた割合",
+    v:function(r){ return r.qty?r.hiqty/r.qty:null },
+    tx:function(r){ return (r.qty?Math.round(r.hiqty/r.qty*100):0)+"%" },
+    av:function(x){ return Math.round(x*100)+"%" },
+    tip:"いいものを先に見せると、高いものが選ばれやすくなります。"},
+  {k:"world", nm:"海外力", ds:"欧米・アジアのお客さまの販売力",
+    v:function(r){ var a=r.visA||{}, b=r.buyA||{};
+      var v=(a.west||0)+(a.asia||0); return v?((b.west||0)+(b.asia||0))/v:null },
+    tx:function(r){ var a=r.visA||{}, b=r.buyA||{};
+      var v=(a.west||0)+(a.asia||0);
+      return (v?Math.round(((b.west||0)+(b.asia||0))/v*100):0)+"%" },
+    av:function(x){ return Math.round(x*100)+"%" },
+    tip:"かんたんな英語のひとことだけでも、お客さまの足は止まります。"},
+  {k:"wide", nm:"商品力", ds:"売った商品の種類の数",
+    v:function(r){ return catKinds(r) },
+    tx:function(r){ return catKinds(r)+"種類" },
+    av:function(x){ return (Math.round(x*10)/10)+"種類" },
+    tip:"いつもと違う棚のものも、すすめてみましょう。"}
+];
+function catKinds(r){ var c=r.cats||{}, n=0; for(var k in c){ if(c[k]>0) n++ } return n }
+
+/* みんなの中での位置を0〜100にする。平均が50、お店でいちばんが100。 */
+function axisScores(rows,me){
+  var out={};
+  AXES.forEach(function(a){
+    var vs=[], mv=null;
+    rows.forEach(function(r){
+      var v=a.v(r); if(v===null) return;
+      vs.push(v); if(r.name===me) mv=v;
+    });
+    if(mv===null||!vs.length){ out[a.k]={s:null}; return }
+    var sum=0; vs.forEach(function(x){ sum+=x });
+    var avg=sum/vs.length, mx=Math.max.apply(null,vs), mn=Math.min.apply(null,vs);
+    var sc;
+    if(mx===mn) sc=50;
+    else if(mv>=avg) sc=50+50*(mv-avg)/((mx-avg)||1);
+    else sc=50-25*(avg-mv)/((avg-mn)||1);
+    /* 下は25で止める。いちばん下の人の五角形がつぶれて見えないようにするため */
+    sc=Math.max(25,Math.min(100,Math.round(sc)));
+    /* 同じ数字なら同じ順位 */
+    var sorted=vs.slice().sort(function(x,y){ return y-x }), pos=1;
+    for(var i=0;i<sorted.length;i++){ if(sorted[i]>mv) pos++; }
+    out[a.k]={s:sc, v:mv, avg:avg, pos:pos, n:vs.length, alone:(mx===mn)};
+  });
+  return out;
+}
+function totalScore(sc){
+  var t=0, c=0;
+  AXES.forEach(function(a){ var x=sc[a.k]; if(x&&x.s!==null){ t+=x.s; c++ } });
+  return c?Math.round(t/c):null;
+}
+/* 五角形。絵はその場で描くので、電波が無くても出る */
+function radarHtml(sc){
+  var W=300,H=248,cx=150,cy=126,R=88,n=AXES.length;
+  function pt(i,f){
+    var a=-Math.PI/2+2*Math.PI*i/n;
+    return [cx+Math.cos(a)*R*f, cy+Math.sin(a)*R*f];
+  }
+  function poly(f){
+    return AXES.map(function(_,i){ var p=pt(i,f);
+      return (i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1) }).join("")+"Z";
+  }
+  var g="";
+  [.25,.5,.75,1].forEach(function(f){ g+='<path class="g'+(f===1?" o":"")+'" d="'+poly(f)+'"/>' });
+  AXES.forEach(function(_,i){ var p=pt(i,1);
+    g+='<line class="g" x1="'+cx+'" y1="'+cy+'" x2="'+p[0].toFixed(1)+'" y2="'+p[1].toFixed(1)+'"/>' });
+  var d="", dots="", lab="";
+  AXES.forEach(function(a,i){
+    var x=sc[a.k], v=(x&&x.s!==null)?x.s:0;
+    var p=pt(i,Math.max(.06,v/100));
+    d+=(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1);
+    dots+='<circle class="dot" cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="4"/>';
+    var q=pt(i,1.19), an=(Math.abs(q[0]-cx)<8)?"middle":(q[0]>cx?"start":"end");
+    lab+='<text class="ax" x="'+q[0].toFixed(1)+'" y="'+(q[1]+4).toFixed(1)+
+         '" text-anchor="'+an+'">'+esc(a.nm)+'</text>';
+  });
+  return '<svg class="radar" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="5つの力">'+
+    g+'<path class="area" d="'+d+'Z"/>'+dots+lab+'</svg>';
+}
 function renderHero(){
   var el=$("#stHero .card-b");
   if(!connOn()){
     el.innerHTML='<div class="stnone">まだ店長とつながっていません。<br>'+
-      '<a href="#" data-go2="cfg">設定</a> でつなぐと、ここに自分の順位が出ます。</div>';
+      '<a href="#" data-go2="cfg">設定</a> でつなぐと、ここに自分の力が出ます。</div>';
     return;
   }
   if((board&&board.personal===false)||(power&&power.personal===false)){
@@ -1227,54 +1382,119 @@ function renderHero(){
       '店長に「ステータス用のリンクがほしい」と伝えてください。</div>';
     return;
   }
-  if(!board||!power){ el.innerHTML='<div class="stnone">読み込んでいます…</div>'; return }
+  if(!board){ el.innerHTML='<div class="stnone">読み込んでいます…</div>'; return }
 
-  var rows=board.rows||[], me=board.me||"";
-  var now=sumDays(powerRange()), was=sumDays(prevRange());
-  if(!now.vis&&!now.buy){
+  var rows=board.rows||[], me=board.me||"", mine=null;
+  rows.forEach(function(r){ if(r.name===me) mine=r });
+  if(!mine||!mine.vis){
     el.innerHTML='<div class="hmsg" style="margin-top:0">'+esc(spanName())+'はまだ記録がありません。</div>'+
       '<div class="stnone" style="margin-top:7px">お店で「来店」を数えて、レジを打つと'+
-      'ここに順位が出ます。</div>';
+      'ここに自分の力が出ます。</div>';
     return;
   }
 
-  var list=totalRank(rows), mine=null;
-  list.forEach(function(x){ if(x.name===me) mine=x });
-  var n=list.length, pos=mine&&mine.pos;
-  var sv=0,sb=0; rows.forEach(function(r){ sv+=r.vis||0; sb+=r.buy||0 });
-  var avg=sv?sb/sv:null;
-
+  var sc=axisScores(rows,me), tot=totalScore(sc);
+  var list=totalRank(rows), rk=null;
+  list.forEach(function(x){ if(x.name===me) rk=x });
+  var pos=rk&&rk.pos;
   var med=pos===1?"🥇":pos===2?"🥈":pos===3?"🥉":"💪";
-  var h='<div class="hrow"><div class="medal">'+med+'</div><div class="hmain">'+
-    (pos?'<div class="hpos"><b>'+pos+'</b>位 <span>/ '+n+'人</span></div>'
+
+  var h='<div class="htop"><div class="medal">'+med+'</div><div class="hmain">'+
+    (pos?'<div class="hpos"><b>'+pos+'</b>位 <span>/ '+list.length+'人</span></div>'
         :'<div class="hpos"><b>—</b> <span>順位はまだつきません</span></div>')+
     '<div class="hcap">総合力の順位・'+esc(spanName())+'</div></div>'+
-    '<div class="hrate"><div class="k">販売力</div><div class="v">'+
-      (now.rate===null?"—":pct(now.rate)+'<small>%</small>')+'</div>';
-  if(now.rate!==null&&was.rate!==null){
-    var d=pct(now.rate)-pct(was.rate);
-    h+='<div class="dlt '+(d>0?"up":d<0?"dn":"")+'">'+(d>0?"＋":d<0?"−":"±")+Math.abs(d)+'pt</div>';
+    '<div class="hscore"><div class="k">'+esc(spanName())+'のスコア</div>'+
+    '<div class="v">'+(tot===null?"—":tot)+'<small> /100</small></div>';
+  if(tot!==null&&boardPrev&&(boardPrev.rows||[]).length){
+    var p2=totalScore(axisScores(boardPrev.rows,me));
+    if(p2!==null){
+      var d=tot-p2;
+      h+='<div class="dlt '+(d>0?"up":d<0?"dn":"")+'">'+(d>0?"＋":d<0?"−":"±")+Math.abs(d)+'</div>';
+    }
   }
-  h+='</div></div>';
+  h+='</div></div>'+radarHtml(sc)+'<div class="axl">'+
+    AXES.map(function(a){
+      var x=sc[a.k]||{};
+      var cls=(x.s===null||x.s===undefined)?"":(x.s>=50?"up":"dn");
+      return '<div class="axrow"><span class="nm">'+esc(a.nm)+'</span>'+
+        '<span class="ds">'+esc(a.ds)+'</span>'+
+        '<span class="nu">'+esc(a.tx(mine))+'</span>'+
+        '<span class="sc '+cls+'">'+(x.s==null?"—":x.s)+'</span></div>';
+    }).join("")+'</div>'+
+    '<div class="stnone" style="margin-top:9px">右の数字は<b>みんなの中での位置</b>です。'+
+    '50がみんなの平均、100はお店でいちばん。'+
+    (rows.length<2?'<br>ほかの人の記録がまだないので、ぜんぶ50になっています。':'')+'</div>';
+  el.innerHTML=h;
+}
 
-  /* 自分の販売力と、みんなの平均をならべて見せる */
-  if(now.rate!==null&&avg!==null){
-    var top=Math.min(1,Math.max(.5,Math.ceil(Math.max(now.rate,avg)*10)/10+.1));
-    h+='<div class="gauge"><i style="width:'+Math.min(100,now.rate/top*100).toFixed(1)+'%"></i>'+
-       '<u style="left:'+Math.min(100,avg/top*100).toFixed(1)+'%"></u></div>'+
-       '<div class="glab"><span>自分 '+pct(now.rate)+'%</span>'+
-       '<span>みんなの平均 '+pct(avg)+'%</span></div>';
+/* ---------- ②できているところ／のばすところ ---------- */
+/* ここは必ず何か「できていること」を出す。順位が下でも、いちばん良いところを拾って書く。 */
+function renderGood(){
+  var el=$("#stGood .card-b");
+  if(!connOn()||!board||board.personal===false){ $("#stGood").hidden=true; return }
+  var rows=board.rows||[], me=board.me||"", mine=null;
+  rows.forEach(function(r){ if(r.name===me) mine=r });
+  if(!mine||!mine.vis){ $("#stGood").hidden=true; return }
+  $("#stGood").hidden=false;
+
+  var sc=axisScores(rows,me);
+  var got=AXES.filter(function(a){ return sc[a.k]&&sc[a.k].s!==null });
+  if(!got.length){ $("#stGood").hidden=true; return }
+  got.sort(function(x,y){ return sc[y.k].s-sc[x.k].s });
+
+  var alone=(rows.length<2);
+  var h='<div class="gdh">✨ できているところ</div>';
+  function line(a,say){
+    var x=sc[a.k], one=(x.pos===1&&!x.alone);
+    return '<div class="gd"><span class="bdg'+(one?" one":"")+'">'+
+      (alone?"—":x.pos+"位")+'</span><span class="tx">'+
+      '<b>'+esc(a.nm)+'</b>　'+say+
+      '<span class="sm">あなた '+esc(a.tx(mine))+
+      (alone?"":'　／　みんなの平均 '+esc(a.av(x.avg)))+'</span></span></div>';
+  }
+  /* みんなの平均より上のものを出す。無ければ、いちばん良いところをほめる。 */
+  var above=got.filter(function(a){ return sc[a.k].s>=55 }).slice(0,2);
+  if(alone){
+    /* ひとりだけのときは、くらべる相手がいないので順位の話はしない */
+    h+='<div class="stnone" style="margin-bottom:4px">'+
+       'ほかの人の記録がまだないので、くらべっこはできません。<br>'+
+       'あなたの数字だけ出しています。</div>';
+  }else if(above.length){
+    above.forEach(function(a){
+      h+=line(a, (sc[a.k].pos===1&&!sc[a.k].alone) ? "<b>お店でいちばん</b>です。"
+                                                   : "みんなの平均より<b>上</b>です。");
+    });
+  }else{
+    h+=line(got[0],"いまのあなたの<b>いちばん良いところ</b>です。");
   }
 
-  var msg;
-  if(pos===1) msg="いまトップです。この調子で。";
-  else if(now.rate!==null&&was.rate!==null&&pct(now.rate)>pct(was.rate))
-    msg=prevName()+"より上がっています。いい流れです。";
-  else if(avg!==null&&now.rate!==null&&now.rate>avg) msg="みんなの平均より上です。";
-  else if(pos&&pos<=3) msg="あと少しで "+(pos-1)+"位です。";
-  else if(pos) msg="まずはひとり追い越しましょう。";
-  else msg="レジを打つと順位がつきます。";
-  h+='<div class="hmsg">'+esc(msg)+'</div>';
+  /* 自分のひとつ前の期間とくらべて、上がったものがあれば足す */
+  if(boardPrev&&(boardPrev.rows||[]).length){
+    var p0=axisScores(boardPrev.rows,me), up=null, d0=0;
+    AXES.forEach(function(a){
+      var x=sc[a.k], y=p0[a.k];
+      if(!x||x.s===null||!y||y.s===null) return;
+      if(x.s-y.s>d0){ d0=x.s-y.s; up=a }
+    });
+    if(up){
+      h+='<div class="gd"><span class="bdg">📈</span><span class="tx">'+
+         '<b>'+esc(up.nm)+'</b>　'+esc(prevName())+'より<b>上がっています</b>。'+
+         '<span class="sm">'+(p0[up.k].s)+' → '+(sc[up.k].s)+'</span></span></div>';
+    }
+  }
+
+  /* 順位に関係なく、必ず出る一言 */
+  h+='<div class="gd"><span class="bdg">🧺</span><span class="tx">'+
+     esc(spanName())+'は <b>'+mine.buy+'人</b> のお客さまが、あなたからお買い上げになりました。'+
+     '<span class="sm">'+mine.qty+'点・来店 '+mine.vis+'人</span></span></div>';
+
+  /* のばすところは、いちばん低いものをひとつだけ */
+  var low=got[got.length-1];
+  if(low&&got.length>1&&!alone&&sc[low.k].s<50){
+    h+='<div class="grow"><div class="t">つぎにのばすなら</div>'+
+       '<div class="tx"><b>'+esc(low.nm)+'</b>（'+esc(low.ds)+'）。<br>'+
+       esc(low.tip)+'</div></div>';
+  }
   el.innerHTML=h;
 }
 
@@ -1384,9 +1604,63 @@ function chartHtml(days){
     g+'</svg>';
 }
 
+/* ---------- 売れている商品の種類 ---------- */
+/* 店長が商品につけた「カテゴリー」ごとに、自分が売った点数を出す。
+   みんなの平均と見くらべて、得意な種類がわかるようにしてある。 */
+function renderItemCats(){
+  var el=$("#stCats"), card=el.closest(".card");
+  if(!connOn()){ el.innerHTML='<div class="stnone">まだ店長とつながっていません。</div>'; return }
+  if(board&&board.personal===false){ card.hidden=true; return }
+  if(!board){ el.innerHTML='<div class="stnone">読み込んでいます…</div>'; return }
+  card.hidden=false;
+
+  var rows=board.rows||[], me=board.me||"", mine=null;
+  rows.forEach(function(r){ if(r.name===me) mine=r });
+  var my=(mine&&mine.cats)||{};
+  /* 出す種類は「自分が売ったもの」と「お店で使っている種類」を合わせる */
+  var keys=[];
+  for(var k in my){ if(my[k]>0&&keys.indexOf(k)<0) keys.push(k) }
+  if(!keys.length){
+    el.innerHTML='<div class="stnone">'+esc(spanName())+'はまだ売れた記録がありません。<br>'+
+      'レジを打つと、どの種類の商品が売れたかがここに出ます。</div>';
+    return;
+  }
+  /* みんなの平均（売った人だけでならす） */
+  function avgOf(k){
+    var t=0,c=0;
+    rows.forEach(function(r){ var v=(r.cats||{})[k]; if(v>0){ t+=v; c++ } });
+    return c?t/c:0;
+  }
+  var mx=0;
+  keys.forEach(function(k){ mx=Math.max(mx,my[k]||0,avgOf(k)) });
+  keys.sort(function(a,b){ return (my[b]||0)-(my[a]||0) });
+
+  var tot=0; keys.forEach(function(k){ tot+=my[k]||0 });
+  var h=keys.map(function(k){
+    var v=my[k]||0, av=avgOf(k), good=(rows.length>1&&v>av);
+    return '<div class="cat"><div class="cathd"><span>'+esc(k)+'</span>'+
+      (good?'<span class="md">平均より多い</span>':'')+
+      '<span class="n">'+v+'点</span></div>'+
+      '<div class="catbar"><i class="'+(good?"good":"")+'" style="width:'+
+        (mx?Math.max(3,v/mx*100):3).toFixed(1)+'%"></i>'+
+      (rows.length>1&&av>0?'<u style="left:'+Math.min(100,av/mx*100).toFixed(1)+'%"></u>':'')+
+      '</div>'+
+      '<div class="catft"><span>'+(tot?Math.round(v/tot*100):0)+'%</span>'+
+      (rows.length>1?'<span>みんなの平均 '+(Math.round(av*10)/10)+'点</span>':'<span></span>')+
+      '</div></div>';
+  }).join("");
+
+  var all=(board.allcats||[]).length;
+  h+='<div class="stnone" style="margin-top:12px">'+esc(spanName())+'に売れた '+tot+'点の内わけです。'+
+     (all?'<br>お店の種類は全部で '+all+'。あなたは <b>'+keys.length+'種類</b>を売りました。':'')+
+     (rows.length>1?'<br>縦の線は、みんなの平均の位置です。':'')+'</div>';
+  el.innerHTML=h;
+}
+
 /* ---------- ③みんなのランキング ---------- */
 /* 全員ぶんの件数だけを受け取って、順位は手元でつける。金額は届かない。 */
 var board=get(K_BOARD,null);
+var boardPrev=null;          /* ひとつ前の期間。スコアの増減を出すためだけに使う */
 var rankKind="total";
 var RANKS=[["total","総合力"],["rate","販売率"],["qty","販売数"],["hi","高単価"],
   ["west","欧米"],["asia","アジア"],["jp","日本"]];
@@ -1553,9 +1827,19 @@ async function pullBoard(){
   try{
     var r0=powerRange();
     var r=await Sync.powerBoard(r0.from,r0.to);
-    board={personal:(r.personal!==false), me:r.me||"", hi:r.hi||3000, rows:r.rows||[]};
+    board={personal:(r.personal!==false), me:r.me||"", hi:r.hi||3000,
+      allcats:r.allcats||[], rows:r.rows||[]};
     set(K_BOARD,board);
-    if(document.body.dataset.screen==="status"){ renderRank(); renderHero() }
+    if(document.body.dataset.screen==="status"){
+      renderRank(); renderHero(); renderGood(); renderItemCats();
+    }
+  }catch(e){}
+  /* 「先月より＋◯」を出すため、ひとつ前の期間のぶんも受け取っておく */
+  try{
+    var r1=prevRange();
+    var q=await Sync.powerBoard(r1.from,r1.to);
+    boardPrev={rows:(q&&q.rows)||[]};
+    if(document.body.dataset.screen==="status") renderHero();
   }catch(e){}
 }
 
