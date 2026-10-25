@@ -89,22 +89,17 @@ main{flex:1;width:100%;max-width:760px;margin:0 auto;padding:14px 16px 190px}
 
 /* ---- ステータス ---- */
 /* 期間の切り替え。この画面ぜんぶ（順位・グラフ・ランキング）がこれに合わせて変わる */
-.spanbar{display:flex;gap:6px;background:var(--surface-2);border-radius:11px;padding:4px;margin-bottom:12px}
-.spanbar button{flex:1;border:none;background:transparent;border-radius:8px;padding:9px 4px;cursor:pointer;
-  font-family:inherit;font-size:13.5px;font-weight:700;color:var(--ink-2)}
-.spanbar button[aria-pressed="true"]{background:var(--surface);color:var(--accent);box-shadow:var(--shadow)}
-.spanpick{display:flex;gap:8px;margin:-4px 0 12px}
-.spanpick label{flex:1;min-width:0;display:flex;align-items:center;gap:7px;background:var(--surface);
-  border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:12px;color:var(--ink-3);
-  font-weight:600}
-.spanpick input{flex:1;min-width:0;width:100%;border:none;background:transparent;font-family:var(--mono);
-  font-size:13.5px;color:var(--ink);padding:0}
-.spanpick input::-webkit-date-and-time-value{text-align:left}
-
-.st{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
-.st .big{font-size:30px;font-weight:800;font-family:var(--mono);line-height:1.1;color:var(--ink)}
-.st .unit{font-size:14px;font-weight:700;color:var(--ink-2);padding-bottom:3px}
-.st .sub{width:100%;font-size:12px;color:var(--ink-3);margin-top:7px;line-height:1.8}
+.monbar{display:flex;align-items:center;gap:6px;background:var(--surface-2);border-radius:11px;
+  padding:4px;margin-bottom:12px}
+.monbar>button{flex:0 0 42px;border:none;background:transparent;border-radius:8px;padding:9px 0;
+  cursor:pointer;font-family:inherit;font-size:19px;font-weight:700;color:var(--ink-2);line-height:1}
+.monbar>button:disabled{opacity:.3;cursor:default}
+.monbar .mon{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:9px;
+  background:var(--surface);border-radius:8px;padding:8px 6px;box-shadow:var(--shadow)}
+.monbar .mon span{font-size:15px;font-weight:800;color:var(--accent);font-family:var(--mono);
+  font-variant-numeric:tabular-nums}
+.monbar .mon button{border:1px solid var(--line);background:var(--surface);border-radius:999px;
+  padding:3px 9px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:700;color:var(--ink-3)}
 
 /* いちばん上の「自分の位置」 */
 .card.hero{background:linear-gradient(152deg,var(--accent-2),var(--surface) 68%);border-color:var(--line-2)}
@@ -408,14 +403,11 @@ pre.out{background:var(--surface-2);border:1px solid var(--line);border-radius:1
 
   <main>
     <section class="view" id="v-status" data-off>
-      <div class="spanbar" id="pwTabs">
-        <button type="button" data-p="today" aria-pressed="false">今日</button>
-        <button type="button" data-p="month" aria-pressed="true">今月</button>
-        <button type="button" data-p="custom" aria-pressed="false">期間指定</button>
-      </div>
-      <div class="spanpick" id="spanPick" hidden>
-        <label>から<input type="date" id="spFrom"></label>
-        <label>まで<input type="date" id="spTo"></label>
+      <div class="monbar" id="monBar">
+        <button type="button" id="monPrev" aria-label="前の月">‹</button>
+        <div class="mon"><span id="monLbl">—</span>
+          <button type="button" id="monNow" hidden>今月へ</button></div>
+        <button type="button" id="monNext" aria-label="次の月">›</button>
       </div>
       <div class="card hero" id="stHero"><div class="card-b"></div></div>
       <div class="card" id="stGood"><div class="card-b"></div></div>
@@ -1231,47 +1223,35 @@ function renderStatus(skipPull){
    一度受け取ったら手元に覚えておき、電波が無くても出せるようにする。 */
 var power=get(K_POWER,null);
 function ymd(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()) }
-/* 選んだ期間と、期間指定の「から・まで」。開き直しても覚えておく */
-var cust=get(K_SPAN,null);
-var powerSpan=(cust&&cust.span==="today")?"today":(cust&&cust.span==="custom")?"custom":"month";
-function custRange(){
-  var now=new Date();
-  var f=(cust&&cust.from)||ymd(new Date(now.getFullYear(),now.getMonth(),1));
-  var t=(cust&&cust.to)||ymd(now);
-  if(f>t){ var x=f; f=t; t=x }
-  return {from:f,to:t};
+/* 見ている月。開き直しても覚えておく */
+var mon=(function(){
+  var v=get(K_SPAN,null), now=new Date();
+  if(v&&typeof v.y==="number"&&typeof v.m==="number") return {y:v.y,m:v.m};
+  return {y:now.getFullYear(), m:now.getMonth()};
+})();
+function thisMon(){ var n=new Date(); return {y:n.getFullYear(), m:n.getMonth()} }
+function isThisMon(){ var t=thisMon(); return mon.y===t.y&&mon.m===t.m }
+function monAdd(k){
+  var d=new Date(mon.y,mon.m+k,1);
+  var t=thisMon();
+  if(d.getFullYear()>t.y||(d.getFullYear()===t.y&&d.getMonth()>t.m)) return;  /* 先の月は見ない */
+  mon={y:d.getFullYear(), m:d.getMonth()};
 }
-function powerRange(){
-  var now=new Date();
-  if(powerSpan==="today") return {from:ymd(now), to:ymd(now)};
-  if(powerSpan==="custom") return custRange();
-  return {from:ymd(new Date(now.getFullYear(),now.getMonth(),1)), to:ymd(now)};
+function monRange(y,m){
+  return {from:ymd(new Date(y,m,1)), to:ymd(new Date(y,m+1,0))};
 }
-/* 日にちの差（両はし入り） */
-function dayDiff(a,b){ return Math.round((new Date(b+"T00:00:00")-new Date(a+"T00:00:00"))/86400000)+1 }
-function shiftDay(d,n){ var x=new Date(d+"T00:00:00"); x.setDate(x.getDate()+n); return ymd(x) }
-/* ひとつ前の同じ長さの期間。「先月より上がった」を出すために使う */
-function prevRange(){
-  var now=new Date();
-  if(powerSpan==="today"){ var a=new Date(now); a.setDate(a.getDate()-1); return {from:ymd(a),to:ymd(a)} }
-  if(powerSpan==="custom"){
-    var r=custRange(), n=dayDiff(r.from,r.to);
-    return {from:shiftDay(r.from,-n), to:shiftDay(r.from,-1)};
-  }
-  return {from:ymd(new Date(now.getFullYear(),now.getMonth()-1,1)),
-          to:ymd(new Date(now.getFullYear(),now.getMonth(),0))};
+function powerRange(){ return monRange(mon.y,mon.m) }
+/* ひとつ前の月。「◯月より上がった」を出すために使う */
+function prevRange(){ return monRange(mon.y,mon.m-1) }
+function monText(y,m){
+  var n=new Date();
+  return (y===n.getFullYear()?"":y+"年 ")+(m+1)+"月";
 }
 function mdText(d){ return String(d).slice(5).replace("-","/").replace(/^0/,"").replace("/0","/") }
-function spanName(){
-  if(powerSpan==="today") return "今日";
-  if(powerSpan==="custom"){ var r=custRange(); return mdText(r.from)+"〜"+mdText(r.to) }
-  return "今月";
-}
-function prevName(){
-  if(powerSpan==="today") return "前の日";
-  if(powerSpan==="custom"){ var r=custRange(); return "その前の"+dayDiff(r.from,r.to)+"日" }
-  return "先月";
-}
+function spanName(){ return monText(mon.y,mon.m) }
+/* 「10月はまだ記録がありません」／過ぎた月なら「9月は記録がありません」 */
+function yet(){ return isThisMon()?"はまだ":"は" }
+function prevName(){ var d=new Date(mon.y,mon.m-1,1); return monText(d.getFullYear(),d.getMonth()) }
 function sumDays(r){
   var o={vis:0,buy:0,qty:0};
   ((power&&power.days)||[]).forEach(function(d){
@@ -1388,12 +1368,12 @@ function renderHero(){
       '店長に「ステータス用のリンクがほしい」と伝えてください。</div>';
     return;
   }
-  if(!board){ el.innerHTML='<div class="stnone">読み込んでいます…</div>'; return }
+  if(!board||!boardOK()){ el.innerHTML=waitMsg(); return }
 
   var rows=board.rows||[], me=board.me||"", mine=null;
   rows.forEach(function(r){ if(r.name===me) mine=r });
   if(!mine||!mine.vis){
-    el.innerHTML='<div class="hmsg" style="margin-top:0">'+esc(spanName())+'はまだ記録がありません。</div>'+
+    el.innerHTML='<div class="hmsg" style="margin-top:0">'+esc(spanName())+yet()+'記録がありません。</div>'+
       '<div class="stnone" style="margin-top:7px">お店で「来店」を数えて、レジを打つと'+
       'ここに自分の力が出ます。</div>';
     return;
@@ -1437,7 +1417,7 @@ function renderHero(){
 /* ここは必ず何か「できていること」を出す。順位が下でも、いちばん良いところを拾って書く。 */
 function renderGood(){
   var el=$("#stGood .card-b");
-  if(!connOn()||!board||board.personal===false){ $("#stGood").hidden=true; return }
+  if(!connOn()||!board||!boardOK()||board.personal===false){ $("#stGood").hidden=true; return }
   var rows=board.rows||[], me=board.me||"", mine=null;
   rows.forEach(function(r){ if(r.name===me) mine=r });
   if(!mine||!mine.vis){ $("#stGood").hidden=true; return }
@@ -1528,19 +1508,14 @@ function renderPower(){
       (s.rate===null?"—":pct(s.rate)+"%")+'</div></div>'+
     '</div>';
 
-  /* グラフは日ごと。その期間に2日ぶんも無いときは、直近2週間をかわりに見せる */
-  var days=all.filter(function(d){ return (d.vis||0)>0 }), wide=false;
-  if(days.length<3){
-    var a=new Date(); a.setDate(a.getDate()-13);
-    var w=(power.days||[]).filter(function(d){ return d.day>=ymd(a)&&(d.vis||0)>0 });
-    if(w.length>days.length){ days=w; wide=true }
-  }
+  /* グラフはその月の日ごと */
+  var days=all.filter(function(d){ return (d.vis||0)>0 });
   if(days.length){
     var best=days.reduce(function(x,y){ return (y.buy/y.vis)>(x.buy/x.vis)?y:x });
     var av=0,sv2=0,sb2=0;
     days.forEach(function(d){ sv2+=d.vis; sb2+=d.buy }); av=sv2?pct(sb2/sv2):0;
     h+='<div class="pwhd"><span class="t">日ごとの販売力</span>'+
-       '<span class="d">'+(wide?"直近2週間":esc(spanName()))+'・平均'+av+'%</span></div>'+
+       '<span class="d">'+esc(spanName())+'・平均'+av+'%</span></div>'+
        chartHtml(days)+
        '<div class="stnone" style="margin-top:7px">ベストは '+
        esc(best.day.slice(5).replace("-","/"))+' の <b style="color:var(--ok)">'+
@@ -1548,7 +1523,7 @@ function renderPower(){
   }
 
   if(!s.vis&&!s.buy){
-    h+='<div class="stnone" style="margin-top:12px">'+esc(spanName())+'はまだ記録がありません。<br>'+
+    h+='<div class="stnone" style="margin-top:12px">'+esc(spanName())+yet()+'記録がありません。<br>'+
        'お店の「来店」を数えて、レジを打つと出ます。</div>';
   }else{
     h+='<div class="stnone" style="margin-top:12px">'+
@@ -1617,8 +1592,8 @@ function renderItemCats(){
   var el=$("#stCats"), card=el.closest(".card");
   if(!connOn()){ el.innerHTML='<div class="stnone">まだ店長とつながっていません。</div>'; return }
   if(board&&board.personal===false){ card.hidden=true; return }
-  if(!board){ el.innerHTML='<div class="stnone">読み込んでいます…</div>'; return }
   card.hidden=false;
+  if(!board||!boardOK()){ el.innerHTML=waitMsg(); return }
 
   var rows=board.rows||[], me=board.me||"", mine=null;
   rows.forEach(function(r){ if(r.name===me) mine=r });
@@ -1627,7 +1602,7 @@ function renderItemCats(){
   var keys=[];
   for(var k in my){ if(my[k]>0&&keys.indexOf(k)<0) keys.push(k) }
   if(!keys.length){
-    el.innerHTML='<div class="stnone">'+esc(spanName())+'はまだ売れた記録がありません。<br>'+
+    el.innerHTML='<div class="stnone">'+esc(spanName())+yet()+'売れた記録がありません。<br>'+
       'レジを打つと、どの種類の商品が売れたかがここに出ます。</div>';
     return;
   }
@@ -1666,7 +1641,16 @@ function renderItemCats(){
 /* ---------- ③みんなのランキング ---------- */
 /* 全員ぶんの件数だけを受け取って、順位は手元でつける。金額は届かない。 */
 var board=get(K_BOARD,null);
-var boardPrev=null;          /* ひとつ前の期間。スコアの増減を出すためだけに使う */
+var boardPrev=null;          /* ひとつ前の月。スコアの増減を出すためだけに使う */
+/* 手元に覚えている成績が、いま見ている月のものかどうか。
+   ちがえば古い数字を出さずに「読み込んでいます」にする（電波が無いときに大事） */
+function boardOK(){
+  return !!(board&&board.span&&board.span.y===mon.y&&board.span.m===mon.m);
+}
+function waitMsg(){
+  return '<div class="stnone">'+esc(spanName())+'の記録を読み込んでいます…<br>'+
+    'つながっていないと出ません。</div>';
+}
 var rankKind="total";
 var RANKS=[["total","総合力"],["rate","販売率"],["qty","販売数"],["hi","高単価"],
   ["west","欧米"],["asia","アジア"],["jp","日本"]];
@@ -1706,7 +1690,7 @@ function rkMine(title,desc,one,me,list){
   var h='<div class="rk"><div class="h"><span class="t">'+esc(title)+'</span>'+
     '<span class="d">'+esc(desc)+'</span></div>';
   if(!mine||!mine.pos){
-    return h+'<div class="stnone">'+esc(spanName())+'は自分の記録がまだありません。</div></div>';
+    return h+'<div class="stnone">'+esc(spanName())+yet()+'自分の記録がありません。</div></div>';
   }
   var cls=(mine.pos===1?"top1":mine.pos===2?"top2":mine.pos===3?"top3":"")+" me solo";
   var v=(one.u==="")?"":(mine.v===null)?"—":(one.u==="%"?Math.round(mine.v*100)+"%":mine.v+one.u);
@@ -1752,10 +1736,10 @@ function renderRank(){
       '店長に「ステータス用のリンクがほしい」と伝えてください。</div>';
     return;
   }
-  if(!board){ el.innerHTML='<div class="stnone">読み込んでいます…</div>'; return }
+  if(!board||!boardOK()){ el.innerHTML=waitMsg(); return }
   var rows=board.rows||[];
   if(!rows.length){
-    el.innerHTML='<div class="stnone">'+esc(spanName())+'はまだ記録がありません。<br>'+
+    el.innerHTML='<div class="stnone">'+esc(spanName())+yet()+'記録がありません。<br>'+
       'お店で「来店」を数えて、レジを打つと出ます。</div>';
     return;
   }
@@ -1812,35 +1796,19 @@ function renderMine(){
 
 /* ---------- 切り替え ---------- */
 function renderSpan(){
-  Array.prototype.forEach.call($("#pwTabs").querySelectorAll("button"),function(x){
-    x.setAttribute("aria-pressed",String(x.dataset.p===powerSpan));
-  });
-  var r=custRange();
-  $("#spFrom").value=r.from; $("#spTo").value=r.to;
-  $("#spanPick").hidden=(powerSpan!=="custom");
+  $("#monLbl").textContent=monText(mon.y,mon.m);
+  $("#monNext").disabled=isThisMon();
+  $("#monNow").hidden=isThisMon();
 }
 function spanChanged(){
-  renderSpan(); renderHero(); renderPower(); renderRank();
+  set(K_SPAN,{y:mon.y,m:mon.m});
+  boardPrev=null;
+  renderSpan(); renderHero(); renderGood(); renderPower(); renderItemCats(); renderRank();
   pullPower(); pullBoard();
 }
-function saveSpan(){
-  var r=custRange();
-  cust={from:r.from, to:r.to, span:powerSpan};
-  set(K_SPAN,cust);
-}
-$("#pwTabs").addEventListener("click",function(e){
-  var b=e.target.closest("[data-p]"); if(!b) return;
-  powerSpan=b.dataset.p; saveSpan(); spanChanged();
-});
-$("#spanPick").addEventListener("change",function(){
-  var f=$("#spFrom").value||"", t=$("#spTo").value||"";
-  cust={from:f||custRange().from, to:t||custRange().to, span:powerSpan};
-  saveSpan(); spanChanged();
-});
-$("#stRank").addEventListener("click",function(e){
-  var b=e.target.closest("[data-r]"); if(!b) return;
-  rankKind=b.dataset.r; renderRank();
-});
+$("#monPrev").addEventListener("click",function(){ monAdd(-1); spanChanged() });
+$("#monNext").addEventListener("click",function(){ monAdd(1); spanChanged() });
+$("#monNow").addEventListener("click",function(){ mon=thisMon(); spanChanged() });
 
 async function pullBoard(){
   if(!connOn()) return;
@@ -1848,7 +1816,7 @@ async function pullBoard(){
     var r0=powerRange();
     var r=await Sync.powerBoard(r0.from,r0.to);
     board={personal:(r.personal!==false), me:r.me||"", hi:r.hi||3000,
-      allcats:r.allcats||[], rows:r.rows||[]};
+      span:{y:mon.y,m:mon.m}, allcats:r.allcats||[], rows:r.rows||[]};
     set(K_BOARD,board);
     if(document.body.dataset.screen==="status"){
       renderRank(); renderHero(); renderGood(); renderItemCats();
@@ -1866,17 +1834,10 @@ async function pullBoard(){
 async function pullPower(){
   if(!connOn()) return;
   try{
-    /* 先月のはじめから今日まで、まとめて受け取っておく（切り替えと「先月より」は手元で済ませる）。
-       期間指定でもっと前や先を見ているときは、そこまで広げる */
-    var now=new Date();
-    var from=ymd(new Date(now.getFullYear(),now.getMonth()-1,1)), to=ymd(now);
-    var a=new Date(now); a.setDate(a.getDate()-13);
-    if(ymd(a)<from) from=ymd(a);
+    /* 見ている月と、そのひとつ前の月をまとめて受け取っておく
+       （「◯月より」の比べっこは手元で済ませる） */
     var w=powerRange(), v=prevRange();
-    if(w.from<from) from=w.from;
-    if(v.from<from) from=v.from;
-    if(w.to>to) to=w.to;
-    var r=await Sync.mePower(from,to);
+    var r=await Sync.mePower(v.from, w.to);
     power={personal:(r.personal!==false), days:r.days||[],
       at:new Date().toLocaleString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})};
     set(K_POWER,power);
